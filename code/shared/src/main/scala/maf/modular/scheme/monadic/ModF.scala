@@ -18,9 +18,12 @@ import maf.modular.scheme.SchemeDomain
 import maf.core.Identity
 import maf.core.Monad
 import maf.core.IdentityMonad.Id
+import maf.modular.scheme.debugger.IntraAnalyisWithBreakpoints
 import maf.util.TrampolineT
 import maf.util.TrampolineT.TrampolineM
 import maf.util.Trampoline
+import scala.io.StdIn
+
 
 abstract class ModF[M[_]: Monad](exp: SchemeExp) extends SchemeModFLocalSensitivity, SchemeDomain, Monolith:
     type A[X] = SuspendM[X]
@@ -62,12 +65,10 @@ abstract class ModF[M[_]: Monad](exp: SchemeExp) extends SchemeModFLocalSensitiv
         // reset C and W, update seen and add components to worklist
         result.copy(C = Set(), W = Set(), seen = seen, wl = result.wl.addAll(cmps))
 
+    class MySuspendable extends Suspend:
+        type State = (Env, Ctx, Effects)
     // a suspendable monad instance
-    final protected val suspendable: Suspend = new Suspend { type State = Effects }
-
-    override def eval(exp: SchemeExp): SuspendM[Val] = exp match
-        case _ =>  
-          suspend(exp) >>> super.eval(exp)
+    final protected val suspendable: MySuspendable = new MySuspendable
 
     given MonadFix_[suspendable.Suspend, Effects] with
         type M[X] = suspendable.Suspend[X]
@@ -81,20 +82,28 @@ abstract class ModF[M[_]: Monad](exp: SchemeExp) extends SchemeModFLocalSensitiv
             if e.wl.isEmpty then unit(e)
             else
                 val next = e.wl.head
-                val result =
-                    SuspendM.run(eval(body(next)))(env(next), ctx(next), e.copy(cmp = next, wl = e.wl.tail, C = Set(), W = Set())) match
-                        case (e2, None) =>
-                            e2
-                        case (e2, Some(v)) =>
-                            val ret = ReturnAddr(next, expr(next).idn)
-                            if lattice.subsumes(e2.sto.lookup(ret).getOrElse(lattice.bottom), v) then e2
-                            else e2.copy(W = e.W + AddrDependency(ret), sto = e2.sto.extend(ret, v))
+                def loop(v: SuspendM[Value]): M[Effects] = v match
+                    case Done(eff) =>
+                        val result = eff match
+                            case (e2, None) =>
+                                e2
+                            case (e2, Some(v)) =>
+                                val ret = ReturnAddr(next, expr(next).idn)
+                                if lattice.subsumes(e2.sto.lookup(ret).getOrElse(lattice.bottom), v) then e2
+                                else e2.copy(W = e.W + AddrDependency(ret), sto = e2.sto.extend(ret, v))
 
-                unit(prepareNext(result))
+                        unit(prepareNext(result))
+                    case s: Suspendable[_] =>
+                        suspendable.suspend[Unit](s.getState) >>> loop(s.resume)
+
+                loop(eval(body(next)).runNext(env(next), ctx(next), e.copy(cmp = next, wl = e.wl.tail, C = Set(), W = Set())))
+
+
 
 class SimpleModFAnalysis(prg: SchemeExp)
     extends ModF[IdentityMonad.Id](prg),
       SchemeModFLocalNoSensitivity,
+      IntraAnalyisWithBreakpoints,
       SchemeConstantPropagationDomain,
       AnalysisEntry[SchemeExp] {
 
@@ -105,7 +114,24 @@ class SimpleModFAnalysis(prg: SchemeExp)
     override def finished: Boolean = _finished
     override def printResult: Unit = if finished then println(result.get)
     override def analyzeWithTimeout(timeout: T): Unit =
-        val effects = MonadFix.fix[suspendable.Suspend, Effects, Any].run
+        val s = MonadFix.fix[suspendable.Suspend, Effects, Any]
+
+        def loop(s: suspendable.Suspend[Effects]): Effects =
+            println(s"current s $s")
+            s match
+                case suspendable.Done(eff) => eff
+                case s: suspendable.SuspendInfo[_] =>
+                    println(s"Current state: ${s.state}")
+                    println("Continue (c), step (s) or quit (q)")
+                    val choice = StdIn.readLine
+                    if choice == "c" then loop(s.continue)
+                    else if choice == "s"
+                    then
+                        this.step = true
+                        loop(s.continue)
+                    else throw Exception("program has stopped")
+
+        val effects = loop(s)
         _finished = effects.wl.isEmpty
         _result = Some(effects.sto.lookup(ReturnAddr(Main, prg.idn)).getOrElse(lattice.bottom))
 }

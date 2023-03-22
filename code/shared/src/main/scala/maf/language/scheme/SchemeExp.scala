@@ -322,6 +322,20 @@ case class SchemeFuncall(
                 if args.isEmpty then "" else "\n" + args.map(" " * nextIndent(indent) ++ _.prettyString(nextIndent(indent))).mkString("\n")
             s"(${if fnString.split("\n").nn.length <= 3 then f.toString else fnString}$argsString)"
 
+/** Debugger expresion */
+case class DebuggerBreak(
+    condition: SchemeExp,
+    idn: Identity)
+    extends SchemeExp:
+  override type T = DebuggerBreak
+  override def toString: String = s"(break $condition)"
+  def fv: Set[String] = condition.fv
+
+  val label: Label = BRK
+
+  override def subexpressions: List[Expression] = List(condition) 
+
+
 /** An if statement: (if cond cons alt) If without alt clauses need to be encoded with an empty begin as alt clause */
 case class SchemeIf(
     cond: SchemeExp,

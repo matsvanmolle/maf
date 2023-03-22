@@ -19,6 +19,7 @@ enum Label:
     case SET // Assignment
     case VAL // Value
     case VAR // Variable
+    case BRK // Break
 
     // Assertions
     case ASS // Assertion

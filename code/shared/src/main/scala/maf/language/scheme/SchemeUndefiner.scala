@@ -180,6 +180,7 @@ trait UndefinerTester:
                 clauses.foldLeft[Result](false)((result, clause) => result || check(clause, false))
             case RacketModuleExpose(_, _)  => false
             case RacketModuleLoad(_, _, _) => false
+            case DebuggerBreak(_, _) => false
 
             case mod @ RacketModule(_, _, _, _, _, bdy, _) =>
                 check(bdy, true)

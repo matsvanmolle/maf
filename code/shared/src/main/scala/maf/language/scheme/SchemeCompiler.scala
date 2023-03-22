@@ -15,7 +15,9 @@ trait BaseSchemeCompiler:
 
     def compile(exp: SExp): SchemeExp = this._compile(exp).result
 
-    def _compile(exp: SExp): TailRec[SchemeExp] = exp match
+    def _compile(exp: SExp): TailRec[SchemeExp] =
+        println(s"compiling $exp")
+        exp match
         case SExpPair(SExpId(Identifier("quote", _)), SExpPair(quoted, SExpValue(Value.Nil, _), _), _) =>
             tailcall(expandQuoted(quoted))
         case SExpPair(SExpId(Identifier("quote", _)), _, _) =>
@@ -152,6 +154,14 @@ trait BaseSchemeCompiler:
         case Ident("provide") :::: clauses =>
             tailcall(compileBody(clauses)).map(RacketProvide(_, exp.idn))
 
+        // breakpoints
+        case Ident("break") :::: condition :::: SNil(_) =>
+            for
+                compiledCondition <- tailcall(_compile(condition)) // scala.util.control.TailCalls.TailRec[Any] req
+            yield DebuggerBreak(compiledCondition, exp.idn)
+        case Ident("break") :::: SNil(_) =>
+            done(DebuggerBreak(SchemeValue(Value.Boolean(true), exp.idn), exp.idn))
+
         // case Ident("syntax") :::: obj :::: line :::: col => ???
         case SExpPair(SExpId(Identifier("or", _)), args, _) =>
             tailcall(compileBody(args)).map(SchemeOr(_, exp.idn))
@@ -201,6 +211,8 @@ trait BaseSchemeCompiler:
             if reserved.contains(v.name) then
                 throw new SchemeCompilerException(s"Invalid Scheme identifier (reserved): $exp (${exp.idn.pos})", exp.idn)
             done(SchemeVar(v))
+
+
         case SExpValue(value, _) => done(SchemeValue(value, exp.idn))
 
     def compileArgs(args: SExp): TailRec[(List[Identifier], Option[Identifier])] = args match

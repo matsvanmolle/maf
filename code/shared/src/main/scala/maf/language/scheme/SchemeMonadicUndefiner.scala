@@ -353,6 +353,8 @@ trait BaseSchemeMonadicUndefiner:
         case r @ RacketModuleExpose(exposed, idn)    => mk(r)
         case l @ RacketModuleLoad(module, name, idn) => mk(l)
 
+        case c @ DebuggerBreak(_, _) => mk(c)
+
         case mod @ RacketModule(_, _, _, _, _, bdy, _) =>
             usingNewScope { undefine1(bdy) }.map(letrectify).map(b => mod.copy(bdy = SchemeBegin(b, Identity.none))).flatMap(mk)
 
