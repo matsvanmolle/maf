@@ -29,6 +29,7 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
             case DebuggerBreak(_, _) => breakAndPrint()
             case _ => if step
                 then
+                step = false
                 breakAndPrint()
                 else
                 super.eval(exp)
