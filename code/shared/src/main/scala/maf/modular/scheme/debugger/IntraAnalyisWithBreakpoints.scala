@@ -30,7 +30,7 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
             case _ => if step
                 then
                 step = false
-                breakAndPrint()
+                stepAndPrint(exp)
                 else
                 super.eval(exp)
 
@@ -45,6 +45,14 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
             result <- unit(lattice.nil)
         yield result
 
+    def stepAndPrint(exp: SchemeExp): A[Val] =
+        println("mynicestep")
+        for
+            _ <- suspend(())
+            _ = println("after suspend")
+
+            result <- super.eval(exp)
+        yield result
 
     /*def loop(s: Suspend): Int =
         println(s"current s $s")
