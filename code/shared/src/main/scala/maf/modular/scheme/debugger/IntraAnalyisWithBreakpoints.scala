@@ -26,13 +26,18 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
     override def eval(exp: SchemeExp): A[Val] =
         println(s"eval $exp")
         exp match
-            case DebuggerBreak(_, _) => breakAndPrint()
-            case _ => if step
+            case DebuggerBreak(pred, _) => breakAndPrint()
+                for
+                    result <- eval(pred)
+                    _ <- cond(result, breakAndPrint(), unit(lattice.nil))
+                yield lattice.nil
+            case _ =>
+                if step
                 then
-                step = false
-                stepAndPrint(exp)
+                    step = false
+                    stepAndPrint(exp)
                 else
-                super.eval(exp)
+                    super.eval(exp)
 
 
 
