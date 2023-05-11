@@ -16,7 +16,7 @@ trait BaseSchemeCompiler:
     def compile(exp: SExp): SchemeExp = this._compile(exp).result
 
     def _compile(exp: SExp): TailRec[SchemeExp] =
-        println(s"compiling $exp")
+        //println(s"compiling $exp")
         exp match
         case SExpPair(SExpId(Identifier("quote", _)), SExpPair(quoted, SExpValue(Value.Nil, _), _), _) =>
             tailcall(expandQuoted(quoted))

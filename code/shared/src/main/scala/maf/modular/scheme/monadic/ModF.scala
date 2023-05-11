@@ -78,7 +78,6 @@ abstract class ModF[M[_]: Monad](exp: SchemeExp) extends SchemeModFLocalSensitiv
             // the algorithm completes when the worklist is empty
             unit(next.wl.nonEmpty)
         def step(e: Effects): M[Effects] =
-            println(e.wl)
             if e.wl.isEmpty then unit(e)
             else
                 val next = e.wl.head
@@ -113,26 +112,28 @@ class SimpleModFAnalysis(prg: SchemeExp)
     override protected def analysisM: AnalysisM[A] = suspendAnalysisM
     override def finished: Boolean = _finished
     override def printResult: Unit = if finished then println(result.get)
-    override def analyzeWithTimeout(timeout: T): Unit =
-        val s = MonadFix.fix[suspendable.Suspend, Effects, Any]
 
-        def loop(s: suspendable.Suspend[Effects]): Effects =
-            println(s"current s $s")
-            s match
-                case suspendable.Done(eff) => eff
-                case s: suspendable.SuspendInfo[_] =>
-                    println(s"Current state: ${s.state}")
-                    println("Continue (c), step (s) or quit (q)")
-                    val choice = StdIn.readLine
-                    if choice == "c" then loop(s.continue)
-                    else if choice == "s"
-                    then
-                        this.step = true
-                        loop(s.continue)
-                    else throw Exception("program has stopped")
 
-        val effects = loop(s)
-        _finished = effects.wl.isEmpty
-        _result = Some(effects.sto.lookup(ReturnAddr(Main, prg.idn)).getOrElse(lattice.bottom))
+    var loopState =  MonadFix.fix[suspendable.Suspend, Effects, Any]
+    var effectsState: Effects = null
+    var isFinisched: Boolean = false
+
+    def loop(step: Boolean): Unit =
+        loopState match
+            case suspendable.Done(eff) =>
+                effectsState = eff
+                _finished = eff.wl.isEmpty
+                
+                _result = Some(eff.sto.lookup(ReturnAddr(Main, prg.idn)).getOrElse(lattice.bottom))
+                isFinisched = true
+            case s: suspendable.SuspendInfo[_] =>
+                //println(s"Current state: ${s.state._3}")
+                effectsState = s.state._3
+                this.isStep = step
+                loopState = s.continue
+
+    def makeAnalysis: Unit =
+        loopState = MonadFix.fix[suspendable.Suspend, Effects, Any]
+    override def analyzeWithTimeout(timeout: T): Unit = ???
 }
 

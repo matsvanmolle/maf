@@ -8,15 +8,15 @@ import maf.language.scheme.*
 import maf.core.Identifier
 import maf.modular.scheme.monadic.*
 import maf.core.Monad.MonadSyntaxOps
+
 import scala.io.StdIn
-
-
 import scala.annotation.tailrec
 
 trait IntraAnalyisWithBreakpoints extends Monolith:
     this: SchemeDomain with SchemeModFLocalSensitivity =>
 
-    var step: Boolean = false;
+    var contin = () => println("noting to do!")
+    var isStep: Boolean = false;
 
     import analysisM_.*
 
@@ -27,14 +27,14 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
         println(s"eval $exp")
         exp match
             case DebuggerBreak(pred, _) => breakAndPrint()
-                for
+                /*for
                     result <- eval(pred)
                     _ <- cond(result, breakAndPrint(), unit(lattice.nil))
-                yield lattice.nil
+                yield lattice.nil*/
             case _ =>
-                if step
+                if isStep
                 then
-                    step = false
+                    isStep = false
                     stepAndPrint(exp)
                 else
                     super.eval(exp)
@@ -44,18 +44,14 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
     def breakAndPrint(): A[Val] =
         println("mynicebreak")
         for
-            _ <- suspend(())
-            _ = println("after suspend")
+            _ <- suspend(()) 
 
             result <- unit(lattice.nil)
         yield result
 
     def stepAndPrint(exp: SchemeExp): A[Val] =
-        println("mynicestep")
         for
             _ <- suspend(())
-            _ = println("after suspend")
-
             result <- super.eval(exp)
         yield result
 
@@ -70,4 +66,9 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
                 if choice == "c" then loop(s.continue)
                 else unit(lattice.nil)*/
 
-    def step(idk: Any): Unit = println("step")
+    def stepNext(): Unit =
+        isStep = true
+        contin()
+    def stepUntilNextBreak(): Unit =
+        isStep = false
+        contin()

@@ -108,13 +108,13 @@ trait Monolith extends SchemeSemantics:
      *   spawns (calls)
      */
     case class Effects(
-        cmp: Component,
-        sto: Sto,
-        wl: FIFOWorkList[Component] = FIFOWorkList.empty,
-        seen: Set[Component] = Set(),
-        W: Set[Dependency] = Set(),
-        R: Map[Dependency, Set[Component]] = Map(),
-        C: Set[Component] = Set()):
+        cmp: Component, // huidig component
+        sto: Sto, //global store
+        wl: FIFOWorkList[Component] = FIFOWorkList.empty, //worklist
+        seen: Set[Component] = Set(), //set van geziene componenten
+        W: Set[Dependency] = Set(), // set ontdekte write eff enkel anl huidig component 
+        R: Map[Dependency, Set[Component]] = Map(), // set ontdekte read dependency //map is dict in scala
+        C: Set[Component] = Set()): //set van calls 
         def merge(other: Effects): Effects =
             this.copy(sto = this.sto.extend(other.sto.content.toIterable), W = this.W ++ other.W, R = this.R ++ other.R, C = this.C ++ other.C)
 
@@ -169,7 +169,9 @@ trait Monolith extends SchemeSemantics:
         override def getState: (Env, Ctx, Effects) = current match
             case Suspended(state, vlu) =>
                 state
-            case _ => ???
+            case _ =>
+                println("no state")
+                ???
 
     case class Fork[A](lattice: Lattice[A], initialState: (Env, Ctx, Effects), csq: SuspendM[A], alt: SuspendM[A]) extends SuspendM[A], Suspendable[A]:
         override def toString(): String = s"<fork $csq ++ $alt>"

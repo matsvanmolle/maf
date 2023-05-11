@@ -23,7 +23,7 @@ object ExamplePrograms:
 
 trait VisualisationSetup:
 
-    type Analysis <: ModAnalysis[_] with SequentialWorklistAlgorithm[_]
+    type Analysis <: ModAnalysis[_] with SequentialWorklistAlgorithm[_] // hier veranderen? a: yes but copy
 
     // the current state of the visualisation setup
     var current: Option[(Analysis, dom.Node)] = None

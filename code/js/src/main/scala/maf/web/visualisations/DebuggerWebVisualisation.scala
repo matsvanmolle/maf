@@ -1,12 +1,12 @@
 package maf.web.visualisations
 
-import maf.core._
-import maf.modular._
+import maf.core.*
+import maf.core.worklist.FIFOWorkList
+import maf.modular.*
 import maf.modular.worklist.SequentialWorklistAlgorithm
 import maf.util.benchmarks.Timeout
-
-import maf.web.utils.JSHelpers._
-import maf.web.utils.D3Helpers._
+import maf.web.utils.JSHelpers.*
+import maf.web.utils.D3Helpers.*
 import maf.web.utils.*
 
 // Scala.js-related imports
@@ -19,28 +19,8 @@ import maf.modular.scheme.PrmAddr
 import org.scalajs.dom.raw.HTMLElement
 import maf.modular.scheme.VarAddr
 
-trait WebVisualisationAnalysis[Expr <: Expression]
-  extends ModAnalysis[Expr]
-    with SequentialWorklistAlgorithm[Expr]
-    with DependencyTracking[Expr]
-    with GlobalStore[Expr]:
 
-  type Module
-
-  def module(cmp: Component): Module
-
-  def moduleName(module: Module): String
-
-  var webvis: WebVisualisation = _
-
-  override def intraAnalysis(component: Component): IntraAnalysis with DependencyTrackingIntra with GlobalStoreIntra
-
-  override def step(timeout: Timeout.T): Unit =
-    webvis.beforeStep()
-    super.step(timeout)
-    webvis.afterStep()
-
-object WebVisualisation:
+object DebuggerWebVisualisation:
   // some constants
   val __CIRCLE_RADIUS__ = 15
   val __SVG_ARROW_ID__ = "endarrow"
@@ -52,18 +32,17 @@ object WebVisualisation:
   val __FORCE_LINKS__ = "links"
   val __FORCE_CENTER__ = "center"
 
-abstract class WebVisualisation(width: Int, height: Int):
+abstract class DebuggerWebVisualisation(width: Int, height: Int):
 
-  import WebVisualisation._
+  import DebuggerWebVisualisation._
 
-  val analysis: WebVisualisationAnalysis[_]
+  val analysis: DebuggerAnalysis
 
   // give the analysis a pointer to this webvis
   analysis.webvis = this
 
   // TODO: make these abstract
   def componentText(cmp: analysis.Component): String = cmp.toString
-
   def componentKey(cmp: analysis.Component): Any = Some(RED)
 
   //
@@ -89,17 +68,17 @@ abstract class WebVisualisation(width: Int, height: Int):
         Nww(newKey, nww(newKey))
         ) :: changes
     )
-
   private var storeTable: HtmlTable[(String, String)] = _
 
   private var lastStore: Map[Address, analysis.Value] = Map()
+  private var lastWorkList: FIFOWorkList[analysis.Component] = FIFOWorkList.empty
 
-  protected def refreshStoreVisualisation(): Unit =
+  def refreshStoreVisualisation(): Unit =
     import Change.*
     // compute the difference between the last know store and the new store
     val newStore = analysis.store.view.filterKeys {
       case PrmAddr(_) => false
-      case _ => true
+      case _          => true
     }.toMap
 
     val dff = diff(lastStore, newStore)
@@ -115,6 +94,24 @@ abstract class WebVisualisation(width: Int, height: Int):
         storeTable.update((adr.toString, oldVlu.toString), (adr.toString, vlu.toString), Some("updated"))
     }
 
+  def getAddedElements(oldList: List[Any], newList: List[Any]): List[Any] = {
+    val commonPrefixLength = oldList.zip(newList).prefixLength { case (a, b) => a == b }
+    val addedElements = newList.drop(commonPrefixLength)
+    addedElements
+  }
+
+  def refreshWorklistVisualisation(): Unit =
+      import Change.*
+      // compute the difference between the last know store and the new store
+      val newWorklist = analysis.workList.toList
+
+      val dff = getAddedElements(lastWorkList.toList, newWorklist)
+
+      // add any new rows
+      dff.foreach { element =>
+        println(element)
+      }
+
   def enableStoreVisualisation(container: HTMLElement): Unit =
     storeTable = HtmlTable(List("Address", "Value"))
     storeTable.render(container)
@@ -124,9 +121,7 @@ abstract class WebVisualisation(width: Int, height: Int):
   //
 
   var colorWheel: Map[Any, JsAny] = Map()
-
   def colorFor(cmp: analysis.Component): JsAny = colorForKey(componentKey(cmp))
-
   def colorForKey(key: Any): JsAny = colorWheel.get(key) match
     case None =>
       val newColor = randomColor()
@@ -139,7 +134,6 @@ abstract class WebVisualisation(width: Int, height: Int):
   //
 
   var edgeID: Int = 0 // Last unused edge id.
-
   def newEdgeID(): String =
     val id = s"edge$edgeID"
     edgeID += 1
@@ -148,28 +142,22 @@ abstract class WebVisualisation(width: Int, height: Int):
   // TODO: find a better interface
   trait Node extends js.Object:
     def displayText(): String
-
     def data(): Any
 
   object Node:
     def apply(v: analysis.Component | Address): Node = v match
-      case adr: Address => AdrNode(adr)
-      case cmp: analysis.Component@unchecked => CmpNode(cmp)
-
+      case adr: Address                       => AdrNode(adr)
+      case cmp: analysis.Component @unchecked => CmpNode(cmp)
   class CmpNode(val component: analysis.Component) extends Node:
     def displayText(): String = componentText(component)
-
     def data(): Any = component
-
   class AdrNode(val addr: Address) extends Node:
     def displayText(): String = addr.toString()
-
     def data(): Any = addr
 
   object IsCmpNode:
     def unapply(v: js.Object): Option[CmpNode] =
       if v.isInstanceOf[CmpNode] then Some(v.asInstanceOf[CmpNode]) else None
-
   object IsAdrNode:
     def unapply(v: js.Object): Option[AdrNode] =
       if v.isInstanceOf[AdrNode] then Some(v.asInstanceOf[AdrNode]) else None
@@ -329,10 +317,10 @@ abstract class WebVisualisation(width: Int, height: Int):
       nodesData += node
       val targets: Set[analysis.Component | Address] = analysis.dependencies(cmp) ++ analysis.readDependencies(cmp).filter {
         case PrmAddr(_) => false
-        case _ => true
+        case _          => true
       } ++ analysis.writeEffects(cmp).filter {
         case PrmAddr(_) => false
-        case _ => true
+        case _          => true
       }
       targets.foreach { target =>
         val targetNode = getNode(target)
@@ -346,9 +334,12 @@ abstract class WebVisualisation(width: Int, height: Int):
   private var prevCalls: Set[analysis.Component] = _
 
   def beforeStep(): Unit =
-    lastStore = analysis.store
-    prevComponent = analysis.workList.head
-    prevCalls = analysis.dependencies(prevComponent)
+    println(analysis)
+    lastStore =  analysis.store
+    //prevComponent = if analysis.workList  != null
+    //  then analysis.workList.head
+    //else null
+    //prevCalls = analysis.dependencies(prevComponent)
 
   def afterStep(): Unit =
     // refresh the data
@@ -377,7 +368,7 @@ abstract class WebVisualisation(width: Int, height: Int):
         .readDependencies(prevComponent)
         .filter {
           case PrmAddr(_) => false
-          case _ => true
+          case _          => true
         }
         .map((_, EdgeKind.Read)) ++ analysis
         .writeEffects(
@@ -385,7 +376,7 @@ abstract class WebVisualisation(width: Int, height: Int):
         )
         .filter {
           case PrmAddr(_) => false
-          case _ => true
+          case _          => true
         }
         .map((_, EdgeKind.Write))
     targets.foreach { case (otherCmp, kind) =>
@@ -443,7 +434,7 @@ abstract class WebVisualisation(width: Int, height: Int):
         (node: Node) =>
           node match {
             case IsCmpNode(node) => analysis.workList.toSet.contains(node.component)
-            case _ => false
+            case _               => false
           }
       )
       .classed(
@@ -451,7 +442,7 @@ abstract class WebVisualisation(width: Int, height: Int):
         (node: Node) =>
           node match {
             case IsCmpNode(node) => !analysis.visited.contains(node.component)
-            case _ => false
+            case _               => false
           }
       )
       .classed(
@@ -459,7 +450,7 @@ abstract class WebVisualisation(width: Int, height: Int):
         (node: Node) =>
           node match {
             case IsCmpNode(node) => analysis.workList.toList.headOption.contains(node.component)
-            case _ => false
+            case _               => false
           }
       )
       .style(
@@ -476,7 +467,6 @@ abstract class WebVisualisation(width: Int, height: Int):
 
   /** Classifies every edge based on its role in the analysis, so the edge can be coloured correctly. */
   def classifyEdges(): Unit = ()
-
   def classifyLabels(): Unit = ()
 
   //
@@ -495,11 +485,9 @@ abstract class WebVisualisation(width: Int, height: Int):
     if isActive == 0 then simulation.alphaTarget(0.3).restart()
     node.fx = node.x
     node.fy = node.y
-
   private def onDragDrag(node: JsAny): Unit =
     node.fx = d3.event.x
     node.fy = d3.event.y
-
   private def onDragEnd(node: JsAny): Unit =
     val isActive = d3.event.active.asInstanceOf[Int]
     if isActive == 0 then simulation.alphaTarget(0)
