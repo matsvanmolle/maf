@@ -31,18 +31,24 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
   def continue(step: Boolean): Unit =
     webvis.beforeStep()
     anlalys.loop(step)
-    //dependenciesMap = dependenciesMap + (anlalys.effectsState.cmp.asInstanceOf[Component] -> anlalys.effectsState.C.asInstanceOf[Set[Component]])
-    //readDependencies = anlalys.effectsState.R.asInstanceOf[Map[Component, Set[Component]]]
-    //writeEffectsMap = writeEffectsMap + (anlalys.effectsState.cmp.asInstanceOf[Component] -> anlalys.effectsState.C.asInstanceOf[Map[Component, Set[Address]]])
+    dependenciesMap = dependenciesMap + (anlalys.effectsState.cmp.asInstanceOf[Component] -> anlalys.effectsState.C.asInstanceOf[Set[Component]])
+    readDependencies = anlalys.effectsState.R.asInstanceOf[Map[Component, Set[Component]]]
+    writeEffectsMap =
+      if anlalys.effectsState != null
+      then
+         writeEffectsMap //+ (anlalys.effectsState.cmp.asInstanceOf[Component] -> anlalys.effectsState.C.asInstanceOf[Map[Component, Set[Address]]])
+      else
+          writeEffectsMap
 
-    webvis.afterStep()
+    //webvis.afterStep()
+    //webvis.refresh()
     //webvis.refreshWorklistVisualisation()
-    //webvis.refreshStoreVisualisation()
+    webvis.refreshStoreVisualisation()
     if anlalys.isFinisched then
       anlalys.printResult
-      //stepButton.innerText = "Reset"
-      //stepUntilBreakButton.classList.add("hidden")
-      //stepClick = () => reload()
+      DebuggerVisualisation.stepButton.innerText = "Reset"
+      DebuggerVisualisation.stepUntilBreakButton.classList.add("hidden")
+      DebuggerVisualisation.stepClick = () => DebuggerVisualisation.reload()
 
   def startAnalysis() =
     anlalys.makeAnalysis
@@ -52,7 +58,9 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
   def store: Map[maf.core.Address, Value] = if anlalys.effectsState == null
     then Map()
     else anlalys.effectsState.sto.content
-  def workList: FIFOWorkList[Component] =  anlalys.effectsState.wl.asInstanceOf[FIFOWorkList[Component]]
+  def workList: FIFOWorkList[Component] = if anlalys.effectsState == null
+    then null
+    else anlalys.effectsState.wl.asInstanceOf[FIFOWorkList[Component]]
   def dependencies(Component : Component): Set[Component] = anlalys.effectsState.C.asInstanceOf[Set[Component]]
   //def readDependencies: Set[Component] = anlalys.effectsState.R.asInstanceOf[Set[Component]]
   var writeEffects: Map[Component, Set[Address]] = Map() /// anlalys.effectsState.W
@@ -88,6 +96,7 @@ object DebuggerVisualisation:
   def onClick(): Unit = println("klik")
   var stepClick = () => println("click")
   var stepUntilBreakClick = () => println("click")
+  var removeStore = () => ()
 
     
 
@@ -147,6 +156,7 @@ object DebuggerVisualisation:
     stepButton.classList.add("hidden")
     stepUntilBreakButton.classList.add("btn")
     stepUntilBreakButton.classList.add("hidden")
+    removeStore()
     input.reset()
 
     
@@ -180,6 +190,32 @@ object DebuggerVisualisation:
     storeVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
     storeVisualisation.setAttribute("id", "storeVisualisation")
     container.appendChild(storeVisualisation)
+    removeStore = () =>
+      container.removeChild(storeVisualisation)
+      storeVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
+      storeVisualisation.setAttribute("id", "storeVisualisation")
+      container.appendChild(storeVisualisation)
+      println("remove")
+
+    // Add the visualisation div
+    val div = document.createElement("div")
+    div.classList.add("visualisation")
+    container.appendChild(div)
+
+
+
+
+
+    // Add the container that holds both the graph visualisation
+    // as well as the store visualisation
+    //val container = document.createElement("div")
+    //container.setAttribute("id", "visualisationContainer")
+    //document.body.appendChild(container)
+
+    // Add the container for holding the store visualisation
+    //storeVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
+    //storeVisualisation.setAttribute("id", "storeVisualisation")
+    //container.appendChild(storeVisualisation)
     
     val body = d3.select(document.body)
     

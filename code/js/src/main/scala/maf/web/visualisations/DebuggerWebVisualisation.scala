@@ -334,16 +334,16 @@ abstract class DebuggerWebVisualisation(width: Int, height: Int):
   private var prevCalls: Set[analysis.Component] = _
 
   def beforeStep(): Unit =
-    println(analysis)
     lastStore =  analysis.store
-    //prevComponent = if analysis.workList  != null
-    //  then analysis.workList.head
-    //else null
-    //prevCalls = analysis.dependencies(prevComponent)
+    if analysis.workList  != null && analysis.workList.nonEmpty
+      then
+        prevComponent = analysis.workList.head
+        prevCalls = analysis.dependencies(prevComponent)
+
 
   def afterStep(): Unit =
     // refresh the data
-    refreshDataAfterStep()
+    if prevComponent != null then refreshDataAfterStep()
     // refresh the visualisation
     refreshVisualisation()
     // refresh the visualisation for the store
@@ -392,6 +392,7 @@ abstract class DebuggerWebVisualisation(width: Int, height: Int):
 
   // updates the visualisation: draws all nodes/edges, sets correct CSS classes, etc.
   def refreshVisualisation(): Unit =
+    println("refresh")
     // update the nodes
     val nodesUpdate = nodes.data(nodesData, (n: Node) => n.data())
     val newGroup = nodesUpdate
