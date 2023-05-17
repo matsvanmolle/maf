@@ -112,9 +112,10 @@ trait Monolith extends SchemeSemantics:
         sto: Sto, //global store
         wl: FIFOWorkList[Component] = FIFOWorkList.empty, //worklist
         seen: Set[Component] = Set(), //set van geziene componenten
-        W: Set[Dependency] = Set(), // set ontdekte write eff enkel anl huidig component 
+        callgraph: Map[Component, Set[Component]] = Map(), // key calls values
+        W: Set[Dependency] = Set(), // set ontdekte write eff enkel anl huidig component
         R: Map[Dependency, Set[Component]] = Map().withDefaultValue(Set()), // set ontdekte read dependency //map is dict in scala
-        C: Set[Component] = Set()): //set van calls 
+        C: Set[Component] = Set()): //set van calls
         def merge(other: Effects): Effects =
             this.copy(sto = this.sto.extend(other.sto.content.toIterable), W = this.W ++ other.W, R = this.R ++ other.R, C = this.C ++ other.C)
 
@@ -321,4 +322,3 @@ trait Monolith extends SchemeSemantics:
         override def fail[X](err: Error): SuspendM[X] = {
             println(err); mbottom
         }
-

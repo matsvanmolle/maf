@@ -24,7 +24,6 @@ import maf.util.TrampolineT.TrampolineM
 import maf.util.Trampoline
 import scala.io.StdIn
 
-
 abstract class ModF[M[_]: Monad](exp: SchemeExp) extends SchemeModFLocalSensitivity, SchemeDomain, Monolith:
     type A[X] = SuspendM[X]
 
@@ -59,11 +58,14 @@ abstract class ModF[M[_]: Monad](exp: SchemeExp) extends SchemeModFLocalSensitiv
                 // add all components that are triggered
                 result.R.filter { case (r, _) => result.W.contains(r) }.flatMap { case (_, k) => k }
 
+        // maintain the call graph
+        val callgraph = result.callgraph + (result.cmp -> (result.callgraph.getOrElse(result.cmp, Set()) ++ result.C))
+
         // add all spawns to the seen state set
         val seen = result.seen ++ result.C
 
         // reset C and W, update seen and add components to worklist
-        result.copy(C = Set(), W = Set(), seen = seen, wl = result.wl.addAll(cmps))
+        result.copy(C = Set(), W = Set(), seen = seen, wl = result.wl.addAll(cmps), callgraph = callgraph)
 
     class MySuspendable extends Suspend:
         type State = (Env, Ctx, Effects)
@@ -73,7 +75,7 @@ abstract class ModF[M[_]: Monad](exp: SchemeExp) extends SchemeModFLocalSensitiv
     given MonadFix_[suspendable.Suspend, Effects] with
         type M[X] = suspendable.Suspend[X]
         import suspendable.suspendMonad.*
-        def init: M[Effects] = unit(Effects(cmp = Main, seen = Set(Main),  sto = initialSto, wl = FIFOWorkList.empty.add(Main)))
+        def init: M[Effects] = unit(Effects(cmp = Main, seen = Set(Main), sto = initialSto, wl = FIFOWorkList.empty.add(Main)))
         override def hasChanged(prev: Effects, next: Effects): M[Boolean] =
             // the algorithm completes when the worklist is empty
             unit(next.wl.nonEmpty)
@@ -97,8 +99,6 @@ abstract class ModF[M[_]: Monad](exp: SchemeExp) extends SchemeModFLocalSensitiv
 
                 loop(eval(body(next)).runNext(env(next), ctx(next), e.copy(cmp = next, wl = e.wl.tail, C = Set(), W = Set())))
 
-
-
 class SimpleModFAnalysis(prg: SchemeExp)
     extends ModF[IdentityMonad.Id](prg),
       SchemeModFLocalNoSensitivity,
@@ -113,8 +113,7 @@ class SimpleModFAnalysis(prg: SchemeExp)
     override def finished: Boolean = _finished
     override def printResult: Unit = if finished then println(result.get)
 
-
-    var loopState =  MonadFix.fix[suspendable.Suspend, Effects, Any]
+    var loopState = MonadFix.fix[suspendable.Suspend, Effects, Any]
     var effectsState: Effects = null
     var isFinisched: Boolean = false
 
@@ -123,7 +122,7 @@ class SimpleModFAnalysis(prg: SchemeExp)
             case suspendable.Done(eff) =>
                 effectsState = eff
                 _finished = eff.wl.isEmpty
-                
+
                 _result = Some(eff.sto.lookup(ReturnAddr(Main, prg.idn)).getOrElse(lattice.bottom))
                 isFinisched = true
             case s: suspendable.SuspendInfo[_] =>
@@ -131,7 +130,6 @@ class SimpleModFAnalysis(prg: SchemeExp)
                 effectsState = s.state._3
                 this.isStep = step
                 loopState = s.continue
-
 
     def makeAnalysis: Unit =
         loopState = MonadFix.fix[suspendable.Suspend, Effects, Any]
@@ -144,4 +142,3 @@ class StateKeeper(val analysis: SimpleModFAnalysis):
     def newState(): Unit =
         lastState = currentState
         currentState = analysis.effectsState
-
