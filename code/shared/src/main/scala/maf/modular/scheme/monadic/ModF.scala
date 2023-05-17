@@ -73,7 +73,7 @@ abstract class ModF[M[_]: Monad](exp: SchemeExp) extends SchemeModFLocalSensitiv
     given MonadFix_[suspendable.Suspend, Effects] with
         type M[X] = suspendable.Suspend[X]
         import suspendable.suspendMonad.*
-        def init: M[Effects] = unit(Effects(cmp = Main, sto = initialSto, wl = FIFOWorkList.empty.add(Main)))
+        def init: M[Effects] = unit(Effects(cmp = Main, seen = Set(Main),  sto = initialSto, wl = FIFOWorkList.empty.add(Main)))
         override def hasChanged(prev: Effects, next: Effects): M[Boolean] =
             // the algorithm completes when the worklist is empty
             unit(next.wl.nonEmpty)
@@ -132,8 +132,16 @@ class SimpleModFAnalysis(prg: SchemeExp)
                 this.isStep = step
                 loopState = s.continue
 
+
     def makeAnalysis: Unit =
         loopState = MonadFix.fix[suspendable.Suspend, Effects, Any]
     override def analyzeWithTimeout(timeout: T): Unit = ???
 }
+
+class StateKeeper(val analysis: SimpleModFAnalysis):
+    var currentState: analysis.Effects = analysis.effectsState
+    var lastState: analysis.Effects = analysis.effectsState
+    def newState(): Unit =
+        lastState = currentState
+        currentState = analysis.effectsState
 

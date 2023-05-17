@@ -315,6 +315,8 @@ abstract class DebuggerWebVisualisation(width: Int, height: Int):
     analysis.visited.foreach { cmp =>
       val node = getNode(cmp)
       nodesData += node
+
+      println(s"deps ${analysis.dependencies(cmp)}, ${analysis.readDependencies(cmp)}")
       val targets: Set[analysis.Component | Address] = analysis.dependencies(cmp) ++ analysis.readDependencies(cmp).filter {
         case PrmAddr(_) => false
         case _          => true
@@ -328,12 +330,15 @@ abstract class DebuggerWebVisualisation(width: Int, height: Int):
         edgesData += edge
       }
     }
+    println(s"=========== ${analysis.visited}")
 
   // More efficient than `refreshData`: updates only data that may have changed after stepping.
   protected var prevComponent: analysis.Component = _
   private var prevCalls: Set[analysis.Component] = _
 
   def beforeStep(): Unit =
+    println("worklist")
+    println(analysis.workList)
     lastStore =  analysis.store
     if analysis.workList  != null && analysis.workList.nonEmpty
       then
@@ -355,6 +360,7 @@ abstract class DebuggerWebVisualisation(width: Int, height: Int):
     case Write
 
   protected def refreshDataAfterStep(): Unit =
+    println("refresch data")
     val sourceNode = getNode(prevComponent)
     nodesData += sourceNode
     prevCalls.foreach { otherCmp =>
@@ -392,9 +398,11 @@ abstract class DebuggerWebVisualisation(width: Int, height: Int):
 
   // updates the visualisation: draws all nodes/edges, sets correct CSS classes, etc.
   def refreshVisualisation(): Unit =
-    println("refresh")
+    println("update")
     // update the nodes
     val nodesUpdate = nodes.data(nodesData, (n: Node) => n.data())
+    println("node update")
+    println(nodesUpdate)
     val newGroup = nodesUpdate
       .enter()
       .append("g")

@@ -341,11 +341,16 @@ object SchemeInterpreter:
 
     val timeout: FiniteDuration = Duration(30, SECONDS)
 
-    def main(args: Array[String]): Unit =
+    def evalPredicate(pgm: SchemeExp): Any =
+        val interpreter = new SchemeInterpreter((id, v) => ())
+        val res = interpreter.run(pgm, Timeout.start(timeout))
+        return res
+
+   /* def main(args: Array[String]): Unit =
         if args.length == 1 then
             val text = Reader.loadFile(args(0))
             val pgm = SchemeUndefiner.undefine(SchemePrelude.addPrelude(SchemeParser.parse(text)))
             val interpreter = new SchemeInterpreter((id, v) => ())
             val res = interpreter.run(pgm, Timeout.start(timeout))
             println(s"Result: $res")
-        else println(s"Expected file to run as argument")
+        else println(s"Expected file to run as argument")*/

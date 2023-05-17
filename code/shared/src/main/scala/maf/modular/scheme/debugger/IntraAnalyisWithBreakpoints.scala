@@ -8,6 +8,13 @@ import maf.language.scheme.*
 import maf.core.Identifier
 import maf.modular.scheme.monadic.*
 import maf.core.Monad.MonadSyntaxOps
+import maf.language.scheme.interpreter.*
+import maf.modular.scheme.monadic.*
+
+import scala.concurrent.duration.*
+import maf.util.benchmarks.Timeout
+
+//import java.util.concurrent.TimeUnit
 
 import scala.io.StdIn
 import scala.annotation.tailrec
@@ -17,6 +24,7 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
 
     var contin = () => println("noting to do!")
     var isStep: Boolean = false;
+    var stateKeeper: StateKeeper = _
 
     import analysisM_.*
 
@@ -26,11 +34,9 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
     override def eval(exp: SchemeExp): A[Val] =
         println(s"eval $exp")
         exp match
-            case DebuggerBreak(pred, _) => breakAndPrint()
-                /*for
-                    result <- eval(pred)
-                    _ <- cond(result, breakAndPrint(), unit(lattice.nil))
-                yield lattice.nil*/
+            case DebuggerBreak(pred, _) =>
+                println(SchemeInterpreterDebugger.evalPredicate(pred, stateKeeper))
+                breakAndPrint()
             case _ =>
                 if isStep
                 then
@@ -72,3 +78,4 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
     def stepUntilNextBreak(): Unit =
         isStep = false
         contin()
+

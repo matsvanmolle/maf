@@ -2,7 +2,7 @@ package maf.web.visualisations
 
 import maf.core.Address
 import maf.core.worklist.{FIFOWorkList, WorkList}
-import maf.modular.scheme.monadic.{MonadFix, SimpleModFAnalysis}
+import maf.modular.scheme.monadic.{MonadFix, SimpleModFAnalysis, StateKeeper}
 import maf.util.benchmarks.{Timeout, Timer}
 
 import concurrent.duration.DurationInt
@@ -22,28 +22,32 @@ import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
 class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
 
   var anlalys = new SimpleModFAnalysis(program)
+  stateKeeper = new StateKeeper(anlalys)
   var webvis: DebuggerWebVisualisation = _
 
-  var dependenciesMap: Map[Component, Set[Component]] = Map()
-  var readDependencies: Map[Component, Set[Component]] = Map()
-  var writeEffectsMap: Map[Component, Map[Component, Set[Address]]] = Map()
+  var dependenciesMap: Map[Component, Set[Component]] = Map().withDefaultValue(Set())
+  var readDependencies: Map[Component, Set[Component]] = Map().withDefaultValue(Set())
+  var writeEffectsMap: Map[Component, Set[Address]] = Map().withDefaultValue(Set())
+
+
 
   def continue(step: Boolean): Unit =
     webvis.beforeStep()
     anlalys.loop(step)
+    stateKeeper.newState()
     dependenciesMap = dependenciesMap + (anlalys.effectsState.cmp.asInstanceOf[Component] -> anlalys.effectsState.C.asInstanceOf[Set[Component]])
     readDependencies = anlalys.effectsState.R.asInstanceOf[Map[Component, Set[Component]]]
     writeEffectsMap =
       if anlalys.effectsState != null
       then
-         writeEffectsMap //+ (anlalys.effectsState.cmp.asInstanceOf[Component] -> anlalys.effectsState.C.asInstanceOf[Map[Component, Set[Address]]])
+         writeEffectsMap + (anlalys.effectsState.cmp.asInstanceOf[Component] -> anlalys.effectsState.W.asInstanceOf[Set[Address]])
       else
           writeEffectsMap
 
-    //webvis.afterStep()
-    //webvis.refresh()
+    webvis.afterStep()
+    webvis.refresh()
     //webvis.refreshWorklistVisualisation()
-    webvis.refreshStoreVisualisation()
+    //webvis.refreshStoreVisualisation()
     if anlalys.isFinisched then
       anlalys.printResult
       DebuggerVisualisation.stepButton.innerText = "Reset"
@@ -52,22 +56,31 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
 
   def startAnalysis() =
     anlalys.makeAnalysis
+    webvis.node
+    anlalys.loop(true)
     continue(false)
 
 
   def store: Map[maf.core.Address, Value] = if anlalys.effectsState == null
     then Map()
-    else anlalys.effectsState.sto.content
+    else
+      println("+++++ stor")
+      anlalys.effectsState.sto.content
   def workList: FIFOWorkList[Component] = if anlalys.effectsState == null
     then null
     else anlalys.effectsState.wl.asInstanceOf[FIFOWorkList[Component]]
-  def dependencies(Component : Component): Set[Component] = anlalys.effectsState.C.asInstanceOf[Set[Component]]
+  def dependencies(cmp : Component): Set[Component] =
+    println(s"-------- ${dependenciesMap}")
+    dependenciesMap.getOrElse(cmp, Set())
   //def readDependencies: Set[Component] = anlalys.effectsState.R.asInstanceOf[Set[Component]]
-  var writeEffects: Map[Component, Set[Address]] = Map() /// anlalys.effectsState.W
+  def writeEffects: Map[Component, Set[Address]] = writeEffectsMap //anlalys.effectsState.W
   def visited: Set[Component] =
+    println(s"++++ ${anlalys.effectsState}")
     if anlalys.effectsState == null then
       Set()
-    else anlalys.effectsState.seen.asInstanceOf[Set[Component]]
+    else
+      println(s"+++++++ ${anlalys.effectsState.seen}")
+      anlalys.effectsState.seen.asInstanceOf[Set[Component]]
 
 
 class DebuggerVisualisation1(
@@ -132,7 +145,9 @@ object DebuggerVisualisation:
     var parsedProgram = SchemeParser.parseProgram(program)
     val viz = new DebuggerVisualisation1(new DebuggerAnalysis(parsedProgram), 500, 500)
     viz.analysis.webvis = viz
+    document.querySelector(".visualisation").appendChild(viz.node)
     viz.enableStoreVisualisation(storeVisualisation)
+
     /*def continue(step: Boolean): Unit =
       anl.loop(step)
       if anl.isFinisched then
