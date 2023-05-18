@@ -98,7 +98,7 @@ abstract class ModF[M[_]: Monad](exp: SchemeExp) extends SchemeModFLocalSensitiv
                 loop(eval(body(next)).runNext(env(next), ctx(next), e.copy(cmp = next, wl = e.wl.tail, C = Set(), W = Set())))
 
 
-
+ 
 class SimpleModFAnalysis(prg: SchemeExp)
     extends ModF[IdentityMonad.Id](prg),
       SchemeModFLocalNoSensitivity,
@@ -117,6 +117,7 @@ class SimpleModFAnalysis(prg: SchemeExp)
     var loopState =  MonadFix.fix[suspendable.Suspend, Effects, Any]
     var effectsState: Effects = null
     var isFinisched: Boolean = false
+    var stateKeeper: StateKeeper = new StateKeeper(this)
 
     def loop(step: Boolean): Unit =
         loopState match

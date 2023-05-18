@@ -22,7 +22,6 @@ import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
 class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
 
   var anlalys = new SimpleModFAnalysis(program)
-  stateKeeper = new StateKeeper(anlalys)
   var webvis: DebuggerWebVisualisation = _
 
   var dependenciesMap: Map[Component, Set[Component]] = Map().withDefaultValue(Set())
@@ -34,7 +33,6 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
   def continue(step: Boolean): Unit =
     webvis.beforeStep()
     anlalys.loop(step)
-    stateKeeper.newState()
     dependenciesMap = dependenciesMap + (anlalys.effectsState.cmp.asInstanceOf[Component] -> anlalys.effectsState.C.asInstanceOf[Set[Component]])
     readDependencies = anlalys.effectsState.R.asInstanceOf[Map[Component, Set[Component]]]
     writeEffectsMap =
@@ -45,7 +43,7 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
           writeEffectsMap
 
     webvis.afterStep()
-    webvis.refresh()
+    //webvis.refresh()
     //webvis.refreshWorklistVisualisation()
     //webvis.refreshStoreVisualisation()
     if anlalys.isFinisched then
@@ -64,22 +62,18 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
   def store: Map[maf.core.Address, Value] = if anlalys.effectsState == null
     then Map()
     else
-      println("+++++ stor")
       anlalys.effectsState.sto.content
   def workList: FIFOWorkList[Component] = if anlalys.effectsState == null
     then null
     else anlalys.effectsState.wl.asInstanceOf[FIFOWorkList[Component]]
   def dependencies(cmp : Component): Set[Component] =
-    println(s"-------- ${dependenciesMap}")
     dependenciesMap.getOrElse(cmp, Set())
   //def readDependencies: Set[Component] = anlalys.effectsState.R.asInstanceOf[Set[Component]]
   def writeEffects: Map[Component, Set[Address]] = writeEffectsMap //anlalys.effectsState.W
   def visited: Set[Component] =
-    println(s"++++ ${anlalys.effectsState}")
     if anlalys.effectsState == null then
       Set()
     else
-      println(s"+++++++ ${anlalys.effectsState.seen}")
       anlalys.effectsState.seen.asInstanceOf[Set[Component]]
 
 
@@ -143,7 +137,9 @@ object DebuggerVisualisation:
     //current = Some((analysis, webvis))
 
     var parsedProgram = SchemeParser.parseProgram(program)
-    val viz = new DebuggerVisualisation1(new DebuggerAnalysis(parsedProgram), 500, 500)
+    val anl = new DebuggerAnalysis(parsedProgram)
+    anl.stateKeeper = new StateKeeper(anl)
+    val viz = new DebuggerVisualisation1(anl, 500, 500)
     viz.analysis.webvis = viz
     document.querySelector(".visualisation").appendChild(viz.node)
     viz.enableStoreVisualisation(storeVisualisation)

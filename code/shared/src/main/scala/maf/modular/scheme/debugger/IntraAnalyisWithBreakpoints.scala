@@ -24,7 +24,7 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
 
     var contin = () => println("noting to do!")
     var isStep: Boolean = false;
-    var stateKeeper: StateKeeper = _
+    var stateKeeper: StateKeeper
 
     import analysisM_.*
 
@@ -35,6 +35,7 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
         println(s"eval $exp")
         exp match
             case DebuggerBreak(pred, _) =>
+                //println(stateKeeper.currentState)
                 println(SchemeInterpreterDebugger.evalPredicate(pred, stateKeeper))
                 breakAndPrint()
             case _ =>
