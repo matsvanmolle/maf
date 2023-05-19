@@ -4,8 +4,12 @@ import maf.core.Identity
 import maf.core.Position.Position
 import maf.language.scheme.*
 import maf.core.*
+import maf.language.scheme.interpreter.ConcreteValues.Value
 import maf.lattice.{MathOps, NumOps}
 import maf.modular.scheme.monadic.*
+import maf.language.scheme.lattices.SchemeOp
+
+import scala.language.postfixOps
 
 trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends ConcreteSchemePrimitives:
     this: BaseSchemeInterpreter[_] =>
@@ -23,7 +27,7 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
       storeLookup,
       storeChanged,
       latticeInteger,
-      latticeReal, 
+      latticeReal,
       latticeBoolean,
       latticeString,
       latticeChar,
@@ -40,10 +44,10 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
 
         def call(args: List[Value], position: Position): Value =
             val state = stateKeeper.currentState
-            if state == null then 
+            if state == null then
                 println("--------wl len no state---------")
                 Value.Integer(0)
-            else 
+            else
                 println("-------wl len----------")
                 println(stateKeeper.currentState.wl.queue.length)
                 Value.Integer(stateKeeper.currentState.wl.queue.length)
@@ -77,33 +81,66 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
 
         def call(args: List[Value], position: Position): Value =
             //if args.length == 1 then
-            val adr = args(1)
+            val adr = args.head
+            val address: String = adr match
+                case Value.Pointer(v) =>getString(v)
+                case _ => ""
+
             val state = stateKeeper.currentState
-            //if state != null then
-            Value.Bool(true) //state.sto.content.filter((k,v) => if k.toString == adr then v)
+            if state != null then
+                val result: Option[ConcreteSchemePrimitivesDebugger.this.stateKeeper.analysis.Value] = state.sto.content.find { case (key, _) => key.toString == address }.map(_._2)
+
+                result match {
+                    case Some(value) => Storeval(value)
+                    case None => Value.Bool(false)
+                }
+            else Value.Bool(false)
 
     object storeChanged extends SimplePrim:
         val name = "store:changed?"
 
         // adres als arg nemen
         def call(args: List[Value], position: Position): Value =
+            val adr = args.head
+            val address: String = adr match
+                case Value.Pointer(v) => getString(v)
+                case _ => ""
+
             val state = stateKeeper.currentState
             val prevState = stateKeeper.lastState
-            if state != null && prevState != null then Value.Bool(state.sto == prevState.sto)
-            else Value.Bool(true)
-            
+            if state != null then
+                if prevState != null then
+                    val result: Option[ConcreteSchemePrimitivesDebugger.this.stateKeeper.analysis.Value] = state.sto.content.find { case (key, _) => key.toString == address }.map(_._2)
+                    val prevResult: Option[ConcreteSchemePrimitivesDebugger.this.stateKeeper.analysis.Value] = prevState.sto.content.find { case (key, _) => key.toString == address }.map(_._2)
+
+                    result match {
+                           case Some(value1) =>
+                             prevResult match {
+                               case Some(value2) => Value.Bool(value1 != value2)
+                               case None => Value.Bool(true)
+                             }
+                           case None => Value.Bool(false)
+                     }
+                else Value.Bool(false)
+            else Value.Bool(false)
+
 
     object latticeInteger extends SimplePrim:
         val name = "lattice:Integer?"
 
         def call(args: List[Value], position: Position): Value =
-            Value.Bool(true)
+          /*val vlu: maf.lattice.HMap = args(0) match // haal value op van bijvoorbeld store
+            case maf.lattice.HMap(v) => v
+            case _ => null
+          val res = stateKeeper.analysis.lattice.op(SchemeOp.IsInteger)(List(vlu)) // voor de check uit, resultaat is abtracte boolean
+          Value.Bool(stateKeeper.analysis.lattice.isTrue(res)) // kijk of de abstracte boolean true is*/
+          Value.Bool(true)
 
     object latticeReal extends SimplePrim:
         val name = "lattice:Real?"
 
         def call(args: List[Value], position: Position): Value =
-            Value.Bool(true)        
+            Value.Bool(true)
 
     object latticeString extends SimplePrim:
         val name = "lattice:String?"
@@ -115,7 +152,7 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
         val name = "lattice:Char?"
 
         def call(args: List[Value], position: Position): Value =
-            Value.Bool(true)        
+            Value.Bool(true)
 
     object latticeBoolean extends SimplePrim:
         val name = "lattice:Bool?"
