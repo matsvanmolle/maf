@@ -48,6 +48,7 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
         stateKeeper = new StateKeeper(this)
         //anlalys.stateKeeper.newState()
         this.makeAnalysis
+        continue(true)
 
     //anlalys.stateKeeper.newState()
 
@@ -98,6 +99,7 @@ object DebuggerVisualisation:
     var stepButton: html.Element = _
     var stepUntilBreakButton: html.Element = _
     var storeVisualisation: HTMLElement = _
+    var viz: HTMLElement = _
 
     def onClick(): Unit = println("klik")
     var stepClick = () => println("click")
@@ -117,14 +119,13 @@ object DebuggerVisualisation:
         // create an analysis
         //val analysis = createAnalysis(program)
         // remove the old visualisation if present
-        /*this.webvis.foreach {
-      document.querySelector(".visualisation").removeChild(_)
-    }*/
+       
         // remove the old store visualisation
         //storeVisualisation.innerHTML = ""
         // create a new visualisation
-        //val width = document.querySelector(".visualisationContainer").asInstanceOf[HTMLElement].offsetWidth.asInstanceOf[Int]
-        //val height = document.querySelector(".visualisationContainer").asInstanceOf[HTMLElement].offsetHeight.asInstanceOf[Int]
+        val width = document.querySelector(".visualisationContainer").asInstanceOf[HTMLElement]//.offsetWidth.asInstanceOf[Int]
+        val height = document.querySelector(".visualisationContainer").asInstanceOf[HTMLElement]//.offsetHeight.asInstanceOf[Int]
+        println(width)
         //val webvis = createVisualisation(analysis, width, height)
         //setupStoreVisualisation(storeVisualisation)
         // load it in the main web page HTML
@@ -134,10 +135,11 @@ object DebuggerVisualisation:
 
         var parsedProgram = SchemeParser.parseProgram(program)
         val anl = new DebuggerAnalysis(parsedProgram)
-        val viz = new DebuggerVisualisation1(anl, 500, 500)
+        val viz = new DebuggerVisualisation1(anl, 840, 600)
         viz.analysis.webvis = viz
         document.querySelector(".visualisation").appendChild(viz.node)
         viz.enableStoreVisualisation(storeVisualisation)
+        
 
         stepClick = () => viz.analysis.continue(true)
         stepUntilBreakClick = () => viz.analysis.continue(false)

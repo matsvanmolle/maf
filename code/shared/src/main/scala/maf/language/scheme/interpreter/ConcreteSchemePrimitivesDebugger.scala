@@ -23,14 +23,20 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
       storeLookup,
       storeChanged,
       latticeInteger,
+      latticeReal, 
+      latticeBoolean,
       latticeString,
-      latticeBoolean
+      latticeChar,
+      latticeVector,
+      latticePair,
+      latticeCar,
+      latticeCdr
     ).map(prim => (prim.name, prim)).toMap ++ super.allPrimitives
 
     case class Storeval(value: stateKeeper.analysis.Value) extends Value:
         override def toString: String = s"#<store-val:$value"
     object WorklistLenght extends SimplePrim:
-        val name = "worklist-length"
+        val name = "wl:length"
 
         def call(args: List[Value], position: Position): Value =
             val state = stateKeeper.currentState
@@ -43,7 +49,7 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
                 Value.Integer(stateKeeper.currentState.wl.queue.length)
 
     object PrevWorklistLenght extends SimplePrim:
-        val name = "prev-worklist-length"
+        val name = "w:prev-length"
 
         def call(args: List[Value], position: Position): Value =
             val state = stateKeeper.lastState
@@ -51,7 +57,7 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
             else Value.Integer(stateKeeper.lastState.wl.queue.length)
 
     object worklistComponent extends SimplePrim:
-        val name = "worklist-component"
+        val name = "wl:component"
 
         def call(args: List[Value], position: Position): Value =
             val state = stateKeeper.currentState
@@ -59,7 +65,7 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
             else Value.Str("")
 
     object worklistPrevComponent extends SimplePrim:
-        val name = "worklist-prev-component"
+        val name = "wl:prev-component"
 
         def call(args: List[Value], position: Position): Value =
             val state = stateKeeper.lastState
@@ -67,7 +73,7 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
             else Value.Str("")
 
     object storeLookup extends SimplePrim:
-        val name = "store-lookup"
+        val name = "store:lookup"
 
         def call(args: List[Value], position: Position): Value =
             //if args.length == 1 then
@@ -77,7 +83,7 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
             Value.Bool(true) //state.sto.content.filter((k,v) => if k.toString == adr then v)
 
     object storeChanged extends SimplePrim:
-        val name = "store-changed?"
+        val name = "store:changed?"
 
         // adres als arg nemen
         def call(args: List[Value], position: Position): Value =
@@ -85,23 +91,63 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
             val prevState = stateKeeper.lastState
             if state != null && prevState != null then Value.Bool(state.sto == prevState.sto)
             else Value.Bool(true)
+            
 
     object latticeInteger extends SimplePrim:
-        val name = "lattice-integer?"
+        val name = "lattice:Integer?"
 
         def call(args: List[Value], position: Position): Value =
             Value.Bool(true)
+
+    object latticeReal extends SimplePrim:
+        val name = "lattice:Real?"
+
+        def call(args: List[Value], position: Position): Value =
+            Value.Bool(true)        
 
     object latticeString extends SimplePrim:
-        val name = "lattice-string?"
+        val name = "lattice:String?"
 
         def call(args: List[Value], position: Position): Value =
             Value.Bool(true)
+
+    object latticeChar extends SimplePrim:
+        val name = "lattice:Char?"
+
+        def call(args: List[Value], position: Position): Value =
+            Value.Bool(true)        
 
     object latticeBoolean extends SimplePrim:
-        val name = "lattice-Bool?"
+        val name = "lattice:Bool?"
 
         def call(args: List[Value], position: Position): Value =
             Value.Bool(true)
+
+    object latticeVector extends SimplePrim:
+        val name = "lattice:Vector?"
+
+        def call(args: List[Value], position: Position): Value =
+            Value.Bool(true)
+
+    object latticePair extends SimplePrim:
+        val name = "lattice:Pair?"
+
+        def call(args: List[Value], position: Position): Value =
+            Value.Bool(true)
+
+    object latticeCar extends SimplePrim:
+        val name = "lattice:car"
+
+        def call(args: List[Value], position: Position): Value =
+            Value.Bool(true)
+
+    object latticeCdr extends SimplePrim:
+        val name = "lattice:cdr"
+
+        def call(args: List[Value], position: Position): Value =
+            Value.Bool(true)
+
+
+
 
 // cons, pair? vector? real? char?
