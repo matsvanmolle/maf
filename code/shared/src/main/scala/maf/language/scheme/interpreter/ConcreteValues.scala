@@ -3,6 +3,7 @@ package maf.language.scheme.interpreter
 import maf.core.{Identifier, Identity}
 import maf.core.Position.Position
 import maf.language.scheme._
+import maf.modular.AbstractDomain
 
 import scala.concurrent.Future
 
@@ -85,6 +86,7 @@ object ConcreteValues:
             init: Value)
             extends Value:
             override def toString: String = s"#<vector[size:$size]>"
+        
 
         case class InputPort(port: Handle) extends Value:
             override def toString: String = s"#<input-port:$port>"

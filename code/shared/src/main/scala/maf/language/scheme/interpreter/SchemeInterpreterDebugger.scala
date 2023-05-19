@@ -343,10 +343,14 @@ object SchemeInterpreterDebugger:
 
   val timeout: FiniteDuration = Duration(30, SECONDS)
   
-  def evalPredicate(pgm: SchemeExp, stateKeeper: StateKeeper): Any =
+  def evalPredicate(pgm: SchemeExp, stateKeeper: StateKeeper): Boolean =
     val interpreter = new SchemeInterpreterDebugger(stateKeeper, (id, v) => ())
     val res = interpreter.run(pgm, Timeout.start(timeout))
-    return res
+    if res == ConcreteValues.Value.Bool(true)
+      then true
+    else if res == ConcreteValues.Value.Bool(false)
+      then false
+    else true
 
   /*def main(args: Array[String]): Unit =
     if args.length == 1 then

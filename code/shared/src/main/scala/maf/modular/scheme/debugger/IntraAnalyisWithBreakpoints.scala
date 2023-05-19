@@ -24,20 +24,28 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
 
     var contin = () => println("noting to do!")
     var isStep: Boolean = false;
-    var stateKeeper: StateKeeper
+    var stateKeeper: StateKeeper = _
 
     import analysisM_.*
 
     type A[X] = SuspendM[X]
 
     import maf.language.scheme
+    def loop(step: Boolean): Unit
     override def eval(exp: SchemeExp): A[Val] =
         println(s"eval $exp")
         exp match
             case DebuggerBreak(pred, _) =>
-                //println(stateKeeper.currentState)
-                println(SchemeInterpreterDebugger.evalPredicate(pred, stateKeeper))
-                breakAndPrint()
+                for
+                    state <- get
+                    _ = stateKeeper.newState(state)
+                    evaledpred = SchemeInterpreterDebugger.evalPredicate(pred, stateKeeper)
+                    res <- if evaledpred then
+                        suspend(())
+                        unit(lattice.nil)
+                    else unit(lattice.nil)
+                yield res
+
             case _ =>
                 if isStep
                 then

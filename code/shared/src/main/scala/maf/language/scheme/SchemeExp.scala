@@ -329,7 +329,7 @@ case class DebuggerBreak(
     extends SchemeExp:
   override type T = DebuggerBreak
   override def toString: String = s"(break $condition)"
-  def fv: Set[String] = condition.fv
+  def fv: Set[String] = Set()
 
   val label: Label = BRK
 
