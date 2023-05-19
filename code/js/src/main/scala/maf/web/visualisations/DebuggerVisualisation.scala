@@ -21,7 +21,7 @@ import maf.modular.AddrDependency
 
 class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
 
-    var anlalys = new SimpleModFAnalysis(program)
+    val anlalys = this
     var webvis: DebuggerWebVisualisation = _
 
     var dependenciesMap: Map[Component, Set[Component]] = Map().withDefaultValue(Set())
@@ -45,11 +45,10 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
             DebuggerVisualisation.stepClick = () => DebuggerVisualisation.reload()
 
     def startAnalysis() =
-        anlalys.stateKeeper = new StateKeeper(anlalys)
+        stateKeeper = new StateKeeper(this)
         //anlalys.stateKeeper.newState()
-        anlalys.makeAnalysis
-        //anlalys.stateKeeper.newState()
-
+        makeAnalysis
+    //anlalys.stateKeeper.newState()
 
     def store: Map[maf.core.Address, Value] = if anlalys.effectsState == null then Map()
     else anlalys.effectsState.sto.content

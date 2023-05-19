@@ -20,11 +20,11 @@ import scala.io.StdIn
 import scala.annotation.tailrec
 
 trait IntraAnalyisWithBreakpoints extends Monolith:
-    this: SchemeDomain with SchemeModFLocalSensitivity =>
+    this: SchemeDomain with SchemeModFLocalSensitivity with SimpleModFAnalysis =>
 
     var contin = () => println("noting to do!")
     var isStep: Boolean = false;
-    var stateKeeper: StateKeeper = _
+    var stateKeeper: StateKeeper[this.type] = _
 
     import analysisM_.*
 
@@ -40,26 +40,23 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
                     state <- get
                     _ = stateKeeper.newState(state)
                     evaledpred = SchemeInterpreterDebugger.evalPredicate(pred, stateKeeper)
-                    res <- if evaledpred then
-                        suspend(())
-                        unit(lattice.nil)
-                    else unit(lattice.nil)
+                    res <-
+                        if evaledpred then
+                            suspend(())
+                            unit(lattice.nil)
+                        else unit(lattice.nil)
                 yield res
 
             case _ =>
-                if isStep
-                then
+                if isStep then
                     isStep = false
                     stepAndPrint(exp)
-                else
-                    super.eval(exp)
-
-
+                else super.eval(exp)
 
     def breakAndPrint(): A[Val] =
         println("mynicebreak")
         for
-            _ <- suspend(()) 
+            _ <- suspend(())
 
             result <- unit(lattice.nil)
         yield result
@@ -87,4 +84,3 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
     def stepUntilNextBreak(): Unit =
         isStep = false
         contin()
-

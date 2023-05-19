@@ -139,7 +139,7 @@ class SimpleModFAnalysis(prg: SchemeExp)
     override def analyzeWithTimeout(timeout: T): Unit = ???
 }
 
-class StateKeeper(val analysis: SimpleModFAnalysis):
+class StateKeeper[A <: SimpleModFAnalysis](val analysis: A):
     import scala.collection.mutable.Stack
     import maf.modular.scheme.monadic.*
 
