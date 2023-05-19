@@ -47,7 +47,8 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
     def startAnalysis() =
         stateKeeper = new StateKeeper(this)
         //anlalys.stateKeeper.newState()
-        makeAnalysis
+        this.makeAnalysis
+
     //anlalys.stateKeeper.newState()
 
     def store: Map[maf.core.Address, Value] = if anlalys.effectsState == null then Map()

@@ -34,8 +34,13 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
 
         def call(args: List[Value], position: Position): Value =
             val state = stateKeeper.currentState
-            if state == null then Value.Integer(0)
-            else Value.Integer(stateKeeper.currentState.wl.queue.length)
+            if state == null then 
+                println("--------wl len no state---------")
+                Value.Integer(0)
+            else 
+                println("-------wl len----------")
+                println(stateKeeper.currentState.wl.queue.length)
+                Value.Integer(stateKeeper.currentState.wl.queue.length)
 
     object PrevWorklistLenght extends SimplePrim:
         val name = "prev-worklist-length"

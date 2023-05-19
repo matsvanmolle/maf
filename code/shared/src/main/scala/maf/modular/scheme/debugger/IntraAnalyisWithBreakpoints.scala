@@ -33,19 +33,18 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
     import maf.language.scheme
     def loop(step: Boolean): Unit
     override def eval(exp: SchemeExp): A[Val] =
-        println(s"eval $exp")
+        //println(s"eval $exp")
         exp match
             case DebuggerBreak(pred, _) =>
                 for
                     state <- get
                     _ = stateKeeper.newState(state)
-                    evaledpred = SchemeInterpreterDebugger.evalPredicate(pred, stateKeeper)
-                    res <-
-                        if evaledpred then
-                            suspend(())
-                            unit(lattice.nil)
-                        else unit(lattice.nil)
+                    _ = println("---try to update state----")
+                    evaledPred = SchemeInterpreterDebugger.evalPredicate(pred, stateKeeper)
+                    _ = println(evaledPred)
+                    res <- if evaledPred then breakAndPrint() else unit(lattice.nil)
                 yield res
+
 
             case _ =>
                 if isStep then
