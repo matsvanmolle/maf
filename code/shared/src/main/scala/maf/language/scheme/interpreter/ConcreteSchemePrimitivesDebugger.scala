@@ -129,62 +129,101 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
         val name = "lattice:Integer?"
 
         def call(args: List[Value], position: Position): Value =
-          /*val vlu: maf.lattice.HMap = args(0) match // haal value op van bijvoorbeld store
-            case maf.lattice.HMap(v) => v
+          val vlu: Option[ConcreteSchemePrimitivesDebugger.this.stateKeeper.analysis.Value] = args(0) match
+            case Storeval(v) => Some(v)
             case _ => null
-          val res = stateKeeper.analysis.lattice.op(SchemeOp.IsInteger)(List(vlu)) // voor de check uit, resultaat is abtracte boolean
-          Value.Bool(stateKeeper.analysis.lattice.isTrue(res)) // kijk of de abstracte boolean true is*/
-          Value.Bool(true)
+          vlu match
+            case Some(vlu) =>
+              val res = stateKeeper.analysis.lattice.op(SchemeOp.IsInteger)(List(vlu)) // voor de check uit, resultaat is abtracte boolean
+              Value.Bool(stateKeeper.analysis.lattice.isTrue(res.getOrElse(stateKeeper.analysis.lattice.nil))) // kijk of de abstracte boolean true is
+            case _ => Value.Bool(false)
 
     object latticeReal extends SimplePrim:
         val name = "lattice:Real?"
 
         def call(args: List[Value], position: Position): Value =
-            Value.Bool(true)
+          val vlu: Option[ConcreteSchemePrimitivesDebugger.this.stateKeeper.analysis.Value] = args(0) match
+            case Storeval(v) => Some(v)
+            case _ => null
+          vlu match
+            case Some(vlu) =>
+              val res = stateKeeper.analysis.lattice.op(SchemeOp.IsReal)(List(vlu)) // voor de check uit, resultaat is abtracte boolean
+              Value.Bool(stateKeeper.analysis.lattice.isTrue(res.getOrElse(stateKeeper.analysis.lattice.nil))) // kijk of de abstracte boolean true is
+            case _ => Value.Bool(false)
 
     object latticeString extends SimplePrim:
         val name = "lattice:String?"
 
         def call(args: List[Value], position: Position): Value =
-            Value.Bool(true)
+          val vlu: Option[ConcreteSchemePrimitivesDebugger.this.stateKeeper.analysis.Value] = args(0) match
+            case Storeval(v) => Some(v)
+            case _ => null
+          vlu match
+            case Some(vlu) =>
+              val res = stateKeeper.analysis.lattice.op(SchemeOp.IsString)(List(vlu)) // voor de check uit, resultaat is abtracte boolean
+              Value.Bool(stateKeeper.analysis.lattice.isTrue(res.getOrElse(stateKeeper.analysis.lattice.nil))) // kijk of de abstracte boolean true is
+            case _ => Value.Bool(false)
 
     object latticeChar extends SimplePrim:
         val name = "lattice:Char?"
 
         def call(args: List[Value], position: Position): Value =
-            Value.Bool(true)
+          val vlu: Option[ConcreteSchemePrimitivesDebugger.this.stateKeeper.analysis.Value] = args(0) match
+            case Storeval(v) => Some(v)
+            case _ => null
+          vlu match
+            case Some(vlu) =>
+              val res = stateKeeper.analysis.lattice.op(SchemeOp.IsChar)(List(vlu)) // voor de check uit, resultaat is abtracte boolean
+              Value.Bool(stateKeeper.analysis.lattice.isTrue(res.getOrElse(stateKeeper.analysis.lattice.nil))) // kijk of de abstracte boolean true is
+            case _ => Value.Bool(false)
 
     object latticeBoolean extends SimplePrim:
         val name = "lattice:Bool?"
 
         def call(args: List[Value], position: Position): Value =
-            Value.Bool(true)
+          val vlu: Option[ConcreteSchemePrimitivesDebugger.this.stateKeeper.analysis.Value] = args(0) match
+            case Storeval(v) => Some(v)
+            case _ => null
+          vlu match
+            case Some(vlu) =>
+              val res = stateKeeper.analysis.lattice.op(SchemeOp.IsBoolean)(List(vlu)) // voor de check uit, resultaat is abtracte boolean
+              Value.Bool(stateKeeper.analysis.lattice.isTrue(res.getOrElse(stateKeeper.analysis.lattice.nil))) // kijk of de abstracte boolean true is
+            case _ => Value.Bool(false)
 
     object latticeVector extends SimplePrim:
         val name = "lattice:Vector?"
 
         def call(args: List[Value], position: Position): Value =
-            Value.Bool(true)
+          val vlu: Option[ConcreteSchemePrimitivesDebugger.this.stateKeeper.analysis.Value] = args(0) match
+            case Storeval(v) => Some(v)
+            case _ => null
+          vlu match
+            case Some(vlu) =>
+              val res = stateKeeper.analysis.lattice.op(SchemeOp.IsVector)(List(vlu)) // voor de check uit, resultaat is abtracte boolean
+              Value.Bool(stateKeeper.analysis.lattice.isTrue(res.getOrElse(stateKeeper.analysis.lattice.nil))) // kijk of de abstracte boolean true is
+            case _ => Value.Bool(false)
 
     object latticePair extends SimplePrim:
         val name = "lattice:Pair?"
 
         def call(args: List[Value], position: Position): Value =
-            Value.Bool(true)
+          val vlu: Option[ConcreteSchemePrimitivesDebugger.this.stateKeeper.analysis.Value] = args(0) match
+            case Storeval(v) => Some(v)
+            case _ => null
+          vlu match
+            case Some(vlu) =>
+              val res = stateKeeper.analysis.lattice.op(SchemeOp.IsCons)(List(vlu)) // voor de check uit, resultaat is abtracte boolean
+              Value.Bool(stateKeeper.analysis.lattice.isTrue(res.getOrElse(stateKeeper.analysis.lattice.nil))) // kijk of de abstracte boolean true is
+            case _ => Value.Bool(false)
 
     object latticeCar extends SimplePrim:
         val name = "lattice:car"
 
         def call(args: List[Value], position: Position): Value =
-            Value.Bool(true)
+          Value.Bool(true)
 
     object latticeCdr extends SimplePrim:
         val name = "lattice:cdr"
 
         def call(args: List[Value], position: Position): Value =
             Value.Bool(true)
-
-
-
-
-// cons, pair? vector? real? char?
