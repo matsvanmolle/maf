@@ -59,18 +59,19 @@ class HtmlTable[T: ColumnExtract](header: List[String]):
         renderedRows = renderedRows - old
         renderedRows = renderedRows + (nww -> oldRender)
 
-    def render(container: HTMLElement): Unit = renderedTable match
-        case Some(t) =>
-            container.removeChild(t) // no-op if element is not there
-            container.appendChild(t)
-        case _ =>
-            val table = document.createElement("table").asInstanceOf[HTMLLinkElement]
-            val headerRow = document.createElement("tr")
-            header.foreach(name =>
-                val headerColumn = document.createElement("td")
-                headerColumn.innerText = name
-                headerRow.appendChild(headerColumn)
-            )
-            table.appendChild(headerRow)
-            container.appendChild(table)
-            renderedTable = Some(table)
+    def render(container: HTMLElement): Unit =
+        renderedTable match
+            case Some(t) =>
+                container.removeChild(t) // no-op if element is not there
+                container.appendChild(t)
+            case _ =>
+                val table = document.createElement("table").asInstanceOf[HTMLLinkElement]
+                val headerRow = document.createElement("tr")
+                header.foreach(name =>
+                    val headerColumn = document.createElement("td")
+                    headerColumn.innerText = name
+                    headerRow.appendChild(headerColumn)
+                )
+                table.appendChild(headerRow)
+                container.appendChild(table)
+                renderedTable = Some(table)

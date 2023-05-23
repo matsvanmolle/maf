@@ -99,6 +99,7 @@ object DebuggerVisualisation:
     var stepButton: html.Element = _
     var stepUntilBreakButton: html.Element = _
     var storeVisualisation: HTMLElement = _
+    var workListVisualisation: HTMLElement = _
     var viz: HTMLElement = _
 
     def onClick(): Unit = println("klik")
@@ -139,6 +140,7 @@ object DebuggerVisualisation:
         viz.analysis.webvis = viz
         document.querySelector(".visualisation").appendChild(viz.node)
         viz.enableStoreVisualisation(storeVisualisation)
+        viz.enableWorklistVisualisation(workListVisualisation)
         
 
         stepClick = () => viz.analysis.continue(true)
@@ -175,17 +177,26 @@ object DebuggerVisualisation:
         val container = document.createElement("div")
         container.setAttribute("id", "visualisationContainer")
         document.body.appendChild(container)
+        
+        //add vis div
+        val swlc = document.createElement("div").asInstanceOf[HTMLElement]
+        swlc.setAttribute("id","visbox")
+        container.appendChild(swlc)
 
         // Add the container for holding the store visualisation
         storeVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
         storeVisualisation.setAttribute("id", "storeVisualisation")
-        container.appendChild(storeVisualisation)
+        swlc.appendChild(storeVisualisation)
         removeStore = () =>
             container.removeChild(storeVisualisation)
             storeVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
             storeVisualisation.setAttribute("id", "storeVisualisation")
             container.appendChild(storeVisualisation)
-            println("remove")
+            
+        // Add the worklistVisualisation
+        workListVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
+        workListVisualisation.setAttribute("id", "workllistVisualisation")
+        swlc.appendChild(workListVisualisation)
 
         // Add the visualisation div
         val div = document.createElement("div")

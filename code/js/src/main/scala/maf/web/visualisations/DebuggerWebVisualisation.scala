@@ -68,6 +68,8 @@ abstract class DebuggerWebVisualisation(width: Int, height: Int):
             ) :: changes
         )
     private var storeTable: HtmlTable[(String, String)] = _
+    private var worklistTable: HtmlList = _
+    private var wlContainer: HTMLElement = _
 
     private var lastStore: Map[Address, analysis.Value] = Map()
     private var lastWorkList: FIFOWorkList[analysis.Component] = FIFOWorkList.empty
@@ -100,16 +102,23 @@ abstract class DebuggerWebVisualisation(width: Int, height: Int):
     }
 
     def refreshWorklistVisualisation(): Unit =
-        import Change.*
-        // compute the difference between the last know store and the new store
-        val newWorklist = analysis.workList.toList
-
-        val dff = getAddedElements(lastWorkList.toList, newWorklist)
-
         // add any new rows
-        dff.foreach { element =>
-            println(element)
+        worklistTable.dropTable(wlContainer)
+        worklistTable.render(wlContainer)
+        analysis.workList.toList.foreach { element =>
+            worklistTable.addRow(element.toString)
         }
+        worklistTable.render(wlContainer)
+
+
+    def enableWorklistVisualisation(container: HTMLElement): Unit =
+        worklistTable = new HtmlList("worklist")
+        wlContainer = container
+        worklistTable.render(container)
+        worklistTable.addRow("test", Some("added"))
+        worklistTable.render(container)
+        worklistTable.dropTable(container)
+        worklistTable.render(container)
 
     def enableStoreVisualisation(container: HTMLElement): Unit =
         storeTable = HtmlTable(List("Address", "Value"))
@@ -354,6 +363,8 @@ abstract class DebuggerWebVisualisation(width: Int, height: Int):
         refreshVisualisation()
         // refresh the visualisation for the store
         refreshStoreVisualisation()
+        // refreh wl vis
+        refreshWorklistVisualisation()
 
     enum EdgeKind:
         case Call
