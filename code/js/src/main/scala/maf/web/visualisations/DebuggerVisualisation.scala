@@ -28,14 +28,14 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
     //var writeEffectsMap: Map[Component, Set[Address]] = Map().withDefaultValue(Set())
 
     var lineVis: HTMLElement = _
-    
-    
+
     def back(): Unit =
         println("back now")
         stateKeeper.goBackState()
         DebuggerVisualisation.reloadvis()
         webvis.beforeStep()
         webvis.afterStep()
+        webvis.refresh()
 
     def continue(step: Boolean): Unit =
 
@@ -43,7 +43,8 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
         anlalys.loop(step)
         stateKeeper.writeEffectsMap =
             if anlalys.effectsState != null then
-                stateKeeper.writeEffectsMap + (anlalys.effectsState.cmp.asInstanceOf[Component] -> anlalys.effectsState.W.asInstanceOf[Set[Address]])
+                stateKeeper.writeEffectsMap + (anlalys.effectsState.cmp
+                    .asInstanceOf[Component] -> anlalys.effectsState.W.collect { case AddrDependency(adr) => adr }.asInstanceOf[Set[Address]])
             else stateKeeper.writeEffectsMap
 
         if lineVis != null then lineVis.innerText = "Break on line:" + stateKeeper.breakLineNumber
@@ -124,8 +125,7 @@ object DebuggerVisualisation:
     var backClick = () => println("back")
     var stepUntilBreakClick = () => println("click")
     var removevis = () => ()
-    
-    
+
     var vizz: DebuggerVisualisation1 = _
     var anl: DebuggerAnalysis = _
 
@@ -142,7 +142,6 @@ object DebuggerVisualisation:
         backButton.classList.remove("hidden")
         backButton.classList.remove("disabled")
 
-
         // create an analysis
         //val analysis = createAnalysis(program)
         // remove the old visualisation if present
@@ -150,8 +149,8 @@ object DebuggerVisualisation:
         // remove the old store visualisation
         //storeVisualisation.innerHTML = ""
         // create a new visualisation
-        val width = document.querySelector(".visualisationContainer").asInstanceOf[HTMLElement]//.offsetWidth.asInstanceOf[Int]
-        val height = document.querySelector(".visualisationContainer").asInstanceOf[HTMLElement]//.offsetHeight.asInstanceOf[Int]
+        val width = document.querySelector(".visualisationContainer").asInstanceOf[HTMLElement] //.offsetWidth.asInstanceOf[Int]
+        val height = document.querySelector(".visualisationContainer").asInstanceOf[HTMLElement] //.offsetHeight.asInstanceOf[Int]
         println(width)
         //val webvis = createVisualisation(analysis, width, height)
         //setupStoreVisualisation(storeVisualisation)
@@ -181,17 +180,15 @@ object DebuggerVisualisation:
         stepUntilBreakButton.classList.add("hidden")
         removevis()
         input.reset()
-        
-        
+
     def reloadvis(): Unit =
         DebuggerVisualisation.removevis()
         vizz = DebuggerVisualisation1(anl, 840, 600)
         document.querySelector(".visualisation").appendChild(vizz.node)
+        vizz.analysis.webvis = vizz
         vizz.enableStoreVisualisation(storeVisualisation)
         vizz.enableWorklistVisualisation(workListVisualisation)
-        vizz.analysis.lineVis = linenumberVis    
-        
-    
+        vizz.analysis.lineVis = linenumberVis
 
     @JSExport
     def setup(): Unit =
@@ -223,7 +220,7 @@ object DebuggerVisualisation:
 
         //add vis div
         val swlc = document.createElement("div").asInstanceOf[HTMLElement]
-        swlc.setAttribute("id","visbox")
+        swlc.setAttribute("id", "visbox")
         container.appendChild(swlc)
 
         linenumberVis = document.createElement("div").asInstanceOf[HTMLElement]
@@ -234,13 +231,10 @@ object DebuggerVisualisation:
         storeVisualisation.setAttribute("id", "storeVisualisation")
         swlc.appendChild(storeVisualisation)
 
-
         // Add the worklistVisualisation
         workListVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
         workListVisualisation.setAttribute("id", "workllistVisualisation")
         swlc.appendChild(workListVisualisation)
-
-
 
         // Add the visualisation div
         val div = document.createElement("div")
@@ -248,8 +242,8 @@ object DebuggerVisualisation:
         container.appendChild(div)
 
         removevis = () =>
-          document.body.removeChild(container)
-          container = document.createElement("div")
+            document.body.removeChild(container)
+            container = document.createElement("div")
             container.setAttribute("id", "visualisationContainer")
             document.body.appendChild(container)
 
@@ -265,7 +259,6 @@ object DebuggerVisualisation:
             storeVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
             storeVisualisation.setAttribute("id", "storeVisualisation")
             swlc.appendChild(storeVisualisation)
-
 
             // Add the worklistVisualisation
             workListVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
