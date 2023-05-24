@@ -72,7 +72,7 @@ abstract class ModF[M[_]: Monad](exp: SchemeExp) extends SchemeModFLocalSensitiv
     class MySuspendable extends Suspend:
         type State = (Env, Ctx, Effects)
     // a suspendable monad instance
-    final protected val suspendable: MySuspendable = new MySuspendable
+    final  val suspendable: MySuspendable = new MySuspendable
 
     given MonadFix_[suspendable.Suspend, Effects] with
         type M[X] = suspendable.Suspend[X]
@@ -115,13 +115,13 @@ class SimpleModFAnalysis(prg: SchemeExp)
     override def finished: Boolean = _finished
     override def printResult: Unit = if finished then println(result.get)
 
-    var loopState: SimpleModFAnalysis.this.suspendable.Suspend[SimpleModFAnalysis.this.Effects] = null
+    //var loopState: SimpleModFAnalysis.this.suspendable.Suspend[SimpleModFAnalysis.this.Effects] = null
     var effectsState: Effects = null
     var isFinisched: Boolean = false
 
     def loop(step: Boolean): Unit =
-        if loopState != null then
-            loopState match
+        if stateKeeper.loopState != null then
+            stateKeeper.loopState match
                 case suspendable.Done(eff) =>
                     effectsState = eff
                     _finished = eff.wl.isEmpty
@@ -132,16 +132,18 @@ class SimpleModFAnalysis(prg: SchemeExp)
                     //println(s"Current state: ${s.state._3}")
                     effectsState = s.state._3
                     this.isStep = step
-                    loopState = s.continue
+                    stateKeeper.loopState = s.continue
 
     def makeAnalysis: Unit =
-        loopState = MonadFix.fix[suspendable.Suspend, Effects, Any]
+        stateKeeper.loopState = MonadFix.fix[suspendable.Suspend, Effects, Any]
     override def analyzeWithTimeout(timeout: T): Unit = ???
 }
 
 class StateKeeper[A <: SimpleModFAnalysis](val analysis: A):
     import scala.collection.mutable.Stack
     import maf.modular.scheme.monadic.*
+    
+    var loopState: analysis.suspendable.Suspend[analysis.Effects] = _
 
     var currentState: analysis.Effects = analysis.effectsState
     var lastState: analysis.Effects = analysis.effectsState
@@ -152,6 +154,10 @@ class StateKeeper[A <: SimpleModFAnalysis](val analysis: A):
         stateStack.push(lastState)
         lastState = currentState
         currentState = newState
+
+    def newLoopState(loopState: analysis.suspendable.Suspend[analysis.Effects]): Unit =
+        println("new state found")
+    
 
     def goBackState(): Unit =
         currentState = lastState

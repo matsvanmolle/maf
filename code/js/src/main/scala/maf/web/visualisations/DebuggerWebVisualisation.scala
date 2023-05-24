@@ -3,6 +3,7 @@ package maf.web.visualisations
 import maf.core.*
 import maf.core.worklist.FIFOWorkList
 import maf.modular.*
+import maf.modular.scheme.monadic.StateKeeper
 import maf.modular.worklist.SequentialWorklistAlgorithm
 import maf.util.benchmarks.Timeout
 import maf.web.utils.JSHelpers.*
@@ -72,7 +73,6 @@ abstract class DebuggerWebVisualisation(width: Int, height: Int):
     private var wlContainer: HTMLElement = _
 
     private var lastStore: Map[Address, analysis.Value] = Map()
-    private var lastWorkList: FIFOWorkList[analysis.Component] = FIFOWorkList.empty
 
     def refreshStoreVisualisation(): Unit =
         import Change.*
@@ -105,7 +105,8 @@ abstract class DebuggerWebVisualisation(width: Int, height: Int):
         // add any new rows
         worklistTable.dropTable(wlContainer)
         worklistTable.render(wlContainer)
-        analysis.workList.toList.foreach { element =>
+        analysis.anlalys.workList.toList.foreach { element =>
+            println("wl---------------")
             worklistTable.addRow(element.toString)
         }
         worklistTable.render(wlContainer)
@@ -349,8 +350,6 @@ abstract class DebuggerWebVisualisation(width: Int, height: Int):
     private var prevCalls: Set[analysis.Component] = _
 
     def beforeStep(): Unit =
-        println("worklist")
-        println(analysis.workList)
         lastStore = analysis.store
         if analysis.workList != null && analysis.workList.nonEmpty then
             prevComponent = analysis.workList.head

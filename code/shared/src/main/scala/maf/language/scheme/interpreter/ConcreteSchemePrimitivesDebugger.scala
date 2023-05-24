@@ -220,7 +220,14 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
         val name = "lattice:car"
 
         def call(args: List[Value], position: Position): Value =
-          Value.Bool(true)
+          val vlu: Option[ConcreteSchemePrimitivesDebugger.this.stateKeeper.analysis.Value] = args(0) match
+            case Storeval(v) => Some(v)
+            case _ => null
+          vlu match
+            case Some(vlu) =>
+              val res = stateKeeper.analysis.lattice.op(SchemeOp.Car)(List(vlu)) // voor de check uit, resultaat is abtracte boolean
+              Value.Bool(stateKeeper.analysis.lattice.isTrue(res.getOrElse(stateKeeper.analysis.lattice.nil))) // kijk of de abstracte boolean true is
+            case _ => Value.Bool(false)
 
     object latticeCdr extends SimplePrim:
         val name = "lattice:cdr"

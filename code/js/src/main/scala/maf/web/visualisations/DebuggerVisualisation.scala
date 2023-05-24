@@ -105,7 +105,7 @@ object DebuggerVisualisation:
     def onClick(): Unit = println("klik")
     var stepClick = () => println("click")
     var stepUntilBreakClick = () => println("click")
-    var removeStore = () => ()
+    var removevis = () => ()
 
     protected def loadFile(program: String): Unit =
 
@@ -120,7 +120,7 @@ object DebuggerVisualisation:
         // create an analysis
         //val analysis = createAnalysis(program)
         // remove the old visualisation if present
-       
+
         // remove the old store visualisation
         //storeVisualisation.innerHTML = ""
         // create a new visualisation
@@ -141,7 +141,7 @@ object DebuggerVisualisation:
         document.querySelector(".visualisation").appendChild(viz.node)
         viz.enableStoreVisualisation(storeVisualisation)
         viz.enableWorklistVisualisation(workListVisualisation)
-        
+
 
         stepClick = () => viz.analysis.continue(true)
         stepUntilBreakClick = () => viz.analysis.continue(false)
@@ -152,7 +152,7 @@ object DebuggerVisualisation:
         stepButton.classList.add("hidden")
         stepUntilBreakButton.classList.add("btn")
         stepUntilBreakButton.classList.add("hidden")
-        removeStore()
+        removevis()
         input.reset()
 
     @JSExport
@@ -174,10 +174,10 @@ object DebuggerVisualisation:
 
         // Add the container that holds both the graph visualisation
         // as well as the store visualisation
-        val container = document.createElement("div")
+        var container = document.createElement("div")
         container.setAttribute("id", "visualisationContainer")
         document.body.appendChild(container)
-        
+
         //add vis div
         val swlc = document.createElement("div").asInstanceOf[HTMLElement]
         swlc.setAttribute("id","visbox")
@@ -187,12 +187,8 @@ object DebuggerVisualisation:
         storeVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
         storeVisualisation.setAttribute("id", "storeVisualisation")
         swlc.appendChild(storeVisualisation)
-        removeStore = () =>
-            container.removeChild(storeVisualisation)
-            storeVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
-            storeVisualisation.setAttribute("id", "storeVisualisation")
-            container.appendChild(storeVisualisation)
-            
+
+
         // Add the worklistVisualisation
         workListVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
         workListVisualisation.setAttribute("id", "workllistVisualisation")
@@ -202,6 +198,33 @@ object DebuggerVisualisation:
         val div = document.createElement("div")
         div.classList.add("visualisation")
         container.appendChild(div)
+
+        removevis = () =>
+          document.body.removeChild(container)
+          container = document.createElement("div")
+            container.setAttribute("id", "visualisationContainer")
+            document.body.appendChild(container)
+
+            //add vis div
+            val swlc = document.createElement("div").asInstanceOf[HTMLElement]
+            swlc.setAttribute("id", "visbox")
+            container.appendChild(swlc)
+
+            // Add the container for holding the store visualisation
+            storeVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
+            storeVisualisation.setAttribute("id", "storeVisualisation")
+            swlc.appendChild(storeVisualisation)
+
+
+            // Add the worklistVisualisation
+            workListVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
+            workListVisualisation.setAttribute("id", "workllistVisualisation")
+            swlc.appendChild(workListVisualisation)
+
+            // Add the visualisation div
+            val div = document.createElement("div")
+            div.classList.add("visualisation")
+            container.appendChild(div)
 
         // Add the container that holds both the graph visualisation
         // as well as the store visualisation
