@@ -120,8 +120,8 @@ class SimpleModFAnalysis(prg: SchemeExp)
     var isFinisched: Boolean = false
 
     def loop(step: Boolean): Unit =
-        if stateKeeper.loopState != null then
-            stateKeeper.loopState match
+        if stateKeeper.currentLoopState != null then
+            stateKeeper.currentLoopState match
                 case suspendable.Done(eff) =>
                     effectsState = eff
                     _finished = eff.wl.isEmpty
@@ -132,10 +132,12 @@ class SimpleModFAnalysis(prg: SchemeExp)
                     //println(s"Current state: ${s.state._3}")
                     effectsState = s.state._3
                     this.isStep = step
-                    stateKeeper.loopState = s.continue
+                    //stateKeeper.currentLoopState = s.continue
+                    stateKeeper.newLoopState(s.continue)
 
     def makeAnalysis: Unit =
-        stateKeeper.loopState = MonadFix.fix[suspendable.Suspend, Effects, Any]
+        println(stateKeeper)
+        stateKeeper.newLoopState(MonadFix.fix[suspendable.Suspend, Effects, Any])
     override def analyzeWithTimeout(timeout: T): Unit = ???
 }
 
@@ -143,8 +145,12 @@ class StateKeeper[A <: SimpleModFAnalysis](val analysis: A):
     import scala.collection.mutable.Stack
     import maf.modular.scheme.monadic.*
     
-    var loopState: analysis.suspendable.Suspend[analysis.Effects] = _
+    var currentLoopState: analysis.suspendable.Suspend[analysis.Effects] = _
+    val loopStateStack: Stack[analysis.suspendable.Suspend[analysis.Effects]] = new mutable.Stack[analysis.suspendable.Suspend[analysis.Effects]]()
 
+
+    var writeEffectsMap: Map[analysis.Component, Set[Address]] = Map().withDefaultValue(Set())
+    var wStack: Stack[Map[analysis.Component, Set[Address]]] = new mutable.Stack[Map[analysis.Component, Set[Address]]]()
     
     var breakLineNumber: Int = 0
     var currentState: analysis.Effects = analysis.effectsState
@@ -158,9 +164,15 @@ class StateKeeper[A <: SimpleModFAnalysis](val analysis: A):
         currentState = newState
 
     def newLoopState(loopState: analysis.suspendable.Suspend[analysis.Effects]): Unit =
-        println("new state found")
+        if currentLoopState != null then 
+            loopStateStack.push(currentLoopState)
+            wStack.push(writeEffectsMap)
+        currentLoopState = loopState
     
 
     def goBackState(): Unit =
         currentState = lastState
         lastState = stateStack.pop()
+        currentLoopState = loopStateStack.pop()
+        writeEffectsMap = wStack.pop()
+        

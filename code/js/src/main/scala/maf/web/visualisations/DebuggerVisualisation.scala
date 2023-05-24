@@ -24,23 +24,31 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
     val anlalys = this
     var webvis: DebuggerWebVisualisation = _
 
-    var dependenciesMap: Map[Component, Set[Component]] = Map().withDefaultValue(Set())
-    var writeEffectsMap: Map[Component, Set[Address]] = Map().withDefaultValue(Set())
-    
+    //var dependenciesMap: Map[Component, Set[Component]] = Map().withDefaultValue(Set())
+    //var writeEffectsMap: Map[Component, Set[Address]] = Map().withDefaultValue(Set())
+
     var lineVis: HTMLElement = _
+    
+    
+    def back(): Unit =
+        println("back now")
+        stateKeeper.goBackState()
+        DebuggerVisualisation.reloadvis()
+        webvis.beforeStep()
+        webvis.afterStep()
 
     def continue(step: Boolean): Unit =
-        
+
         webvis.beforeStep()
         anlalys.loop(step)
-        writeEffectsMap =
+        stateKeeper.writeEffectsMap =
             if anlalys.effectsState != null then
-                writeEffectsMap + (anlalys.effectsState.cmp.asInstanceOf[Component] -> anlalys.effectsState.W.asInstanceOf[Set[Address]])
-            else writeEffectsMap
+                stateKeeper.writeEffectsMap + (anlalys.effectsState.cmp.asInstanceOf[Component] -> anlalys.effectsState.W.asInstanceOf[Set[Address]])
+            else stateKeeper.writeEffectsMap
 
         if lineVis != null then lineVis.innerText = "Break on line:" + stateKeeper.breakLineNumber
         webvis.afterStep()
-        
+
         //anlalys.stateKeeper.newState()
         webvis.refresh()
         if anlalys.isFinisched then
@@ -48,6 +56,7 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
             if lineVis != null then lineVis.innerText = ""
             DebuggerVisualisation.stepButton.innerText = "Reset"
             DebuggerVisualisation.stepUntilBreakButton.classList.add("hidden")
+            DebuggerVisualisation.backButton.classList.add("hidden")
             DebuggerVisualisation.stepClick = () => DebuggerVisualisation.reload()
 
     def startAnalysis() =
@@ -79,7 +88,7 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
             println(s"readDeps: $res")
             res
 
-    def writeEffects: Map[Component, Set[Address]] = writeEffectsMap //anlalys.effectsState.W
+    def writeEffects: Map[Component, Set[Address]] = stateKeeper.writeEffectsMap //anlalys.effectsState.W
     def visited: Set[Component] =
         if anlalys.effectsState == null then Set()
         else anlalys.effectsState.seen.asInstanceOf[Set[Component]]
@@ -104,15 +113,21 @@ object DebuggerVisualisation:
     var input: EditText = _
     var stepButton: html.Element = _
     var stepUntilBreakButton: html.Element = _
+    var backButton: html.Element = _
     var storeVisualisation: HTMLElement = _
     var workListVisualisation: HTMLElement = _
     var linenumberVis: HTMLElement = _
     var viz: HTMLElement = _
 
-    def onClick(): Unit = println("klik")
+    def onClick(): Unit = println("click")
     var stepClick = () => println("click")
+    var backClick = () => println("back")
     var stepUntilBreakClick = () => println("click")
     var removevis = () => ()
+    
+    
+    var vizz: DebuggerVisualisation1 = _
+    var anl: DebuggerAnalysis = _
 
     protected def loadFile(program: String): Unit =
 
@@ -123,6 +138,10 @@ object DebuggerVisualisation:
         stepUntilBreakButton.innerText = "Step Until Next Breakpoint"
         stepUntilBreakButton.classList.remove("hidden")
         stepUntilBreakButton.classList.remove("disabled")
+
+        backButton.classList.remove("hidden")
+        backButton.classList.remove("disabled")
+
 
         // create an analysis
         //val analysis = createAnalysis(program)
@@ -142,18 +161,18 @@ object DebuggerVisualisation:
         //current = Some((analysis, webvis))
 
         var parsedProgram = SchemeParser.parseProgram(program)
-        val anl = new DebuggerAnalysis(parsedProgram)
-        val viz = new DebuggerVisualisation1(anl, 840, 600)
-        viz.analysis.webvis = viz
-        document.querySelector(".visualisation").appendChild(viz.node)
-        viz.enableStoreVisualisation(storeVisualisation)
-        viz.enableWorklistVisualisation(workListVisualisation)
-        viz.analysis.lineVis = linenumberVis
+        anl = new DebuggerAnalysis(parsedProgram)
+        vizz = new DebuggerVisualisation1(anl, 840, 600)
+        vizz.analysis.webvis = vizz
+        document.querySelector(".visualisation").appendChild(vizz.node)
+        vizz.enableStoreVisualisation(storeVisualisation)
+        vizz.enableWorklistVisualisation(workListVisualisation)
+        vizz.analysis.lineVis = linenumberVis
 
-
-        stepClick = () => viz.analysis.continue(true)
-        stepUntilBreakClick = () => viz.analysis.continue(false)
-        viz.analysis.startAnalysis()
+        backClick = () => vizz.analysis.back()
+        stepClick = () => vizz.analysis.continue(true)
+        stepUntilBreakClick = () => vizz.analysis.continue(false)
+        vizz.analysis.startAnalysis()
 
     def reload(): Unit =
         stepButton.classList.add("btn")
@@ -162,6 +181,17 @@ object DebuggerVisualisation:
         stepUntilBreakButton.classList.add("hidden")
         removevis()
         input.reset()
+        
+        
+    def reloadvis(): Unit =
+        DebuggerVisualisation.removevis()
+        vizz = DebuggerVisualisation1(anl, 840, 600)
+        document.querySelector(".visualisation").appendChild(vizz.node)
+        vizz.enableStoreVisualisation(storeVisualisation)
+        vizz.enableWorklistVisualisation(workListVisualisation)
+        vizz.analysis.lineVis = linenumberVis    
+        
+    
 
     @JSExport
     def setup(): Unit =
@@ -169,6 +199,11 @@ object DebuggerVisualisation:
         input = EditText(loadFile)
         input.setFile(ExamplePrograms3.factorial)
         document.body.appendChild(input.render())
+
+        backButton = Button("Back")(backClick())
+        backButton.classList.add("btn")
+        backButton.classList.add("hidden")
+        input.appendChild(backButton)
 
         stepButton = Button("Click 'Start Analysis' to start.")(stepClick())
         stepButton.classList.add("btn")
@@ -225,7 +260,7 @@ object DebuggerVisualisation:
 
             linenumberVis = document.createElement("div").asInstanceOf[HTMLElement]
             swlc.appendChild(linenumberVis)
-            
+
             // Add the container for holding the store visualisation
             storeVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
             storeVisualisation.setAttribute("id", "storeVisualisation")
