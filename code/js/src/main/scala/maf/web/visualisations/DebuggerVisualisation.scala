@@ -26,8 +26,11 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
 
     var dependenciesMap: Map[Component, Set[Component]] = Map().withDefaultValue(Set())
     var writeEffectsMap: Map[Component, Set[Address]] = Map().withDefaultValue(Set())
+    
+    var lineVis: HTMLElement = _
 
     def continue(step: Boolean): Unit =
+        
         webvis.beforeStep()
         anlalys.loop(step)
         writeEffectsMap =
@@ -35,11 +38,14 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
                 writeEffectsMap + (anlalys.effectsState.cmp.asInstanceOf[Component] -> anlalys.effectsState.W.asInstanceOf[Set[Address]])
             else writeEffectsMap
 
+        if lineVis != null then lineVis.innerText = "Break on line:" + stateKeeper.breakLineNumber
         webvis.afterStep()
+        
         //anlalys.stateKeeper.newState()
         webvis.refresh()
         if anlalys.isFinisched then
             anlalys.printResult
+            if lineVis != null then lineVis.innerText = ""
             DebuggerVisualisation.stepButton.innerText = "Reset"
             DebuggerVisualisation.stepUntilBreakButton.classList.add("hidden")
             DebuggerVisualisation.stepClick = () => DebuggerVisualisation.reload()
@@ -100,6 +106,7 @@ object DebuggerVisualisation:
     var stepUntilBreakButton: html.Element = _
     var storeVisualisation: HTMLElement = _
     var workListVisualisation: HTMLElement = _
+    var linenumberVis: HTMLElement = _
     var viz: HTMLElement = _
 
     def onClick(): Unit = println("klik")
@@ -141,6 +148,7 @@ object DebuggerVisualisation:
         document.querySelector(".visualisation").appendChild(viz.node)
         viz.enableStoreVisualisation(storeVisualisation)
         viz.enableWorklistVisualisation(workListVisualisation)
+        viz.analysis.lineVis = linenumberVis
 
 
         stepClick = () => viz.analysis.continue(true)
@@ -183,6 +191,9 @@ object DebuggerVisualisation:
         swlc.setAttribute("id","visbox")
         container.appendChild(swlc)
 
+        linenumberVis = document.createElement("div").asInstanceOf[HTMLElement]
+        swlc.appendChild(linenumberVis)
+
         // Add the container for holding the store visualisation
         storeVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
         storeVisualisation.setAttribute("id", "storeVisualisation")
@@ -193,6 +204,8 @@ object DebuggerVisualisation:
         workListVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
         workListVisualisation.setAttribute("id", "workllistVisualisation")
         swlc.appendChild(workListVisualisation)
+
+
 
         // Add the visualisation div
         val div = document.createElement("div")
@@ -210,6 +223,9 @@ object DebuggerVisualisation:
             swlc.setAttribute("id", "visbox")
             container.appendChild(swlc)
 
+            linenumberVis = document.createElement("div").asInstanceOf[HTMLElement]
+            swlc.appendChild(linenumberVis)
+            
             // Add the container for holding the store visualisation
             storeVisualisation = document.createElement("div").asInstanceOf[HTMLElement]
             storeVisualisation.setAttribute("id", "storeVisualisation")

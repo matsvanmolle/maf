@@ -35,9 +35,10 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
     override def eval(exp: SchemeExp): A[Val] =
         //println(s"eval $exp")
         exp match
-            case DebuggerBreak(pred, _) =>
+            case DebuggerBreak(pred, idn) =>
                 for
                     state <- get
+                    _ = stateKeeper.breakLineNumber = idn.pos.line
                     _ = stateKeeper.newState(state)
                     _ = println("---try to update state----")
                     evaledPred = SchemeInterpreterDebugger.evalPredicate(pred, stateKeeper)

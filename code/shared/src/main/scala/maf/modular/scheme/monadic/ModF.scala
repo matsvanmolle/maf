@@ -145,6 +145,8 @@ class StateKeeper[A <: SimpleModFAnalysis](val analysis: A):
     
     var loopState: analysis.suspendable.Suspend[analysis.Effects] = _
 
+    
+    var breakLineNumber: Int = 0
     var currentState: analysis.Effects = analysis.effectsState
     var lastState: analysis.Effects = analysis.effectsState
     val stateStack: Stack[analysis.Effects] = new mutable.Stack[analysis.Effects]()
