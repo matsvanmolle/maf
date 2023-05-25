@@ -19,10 +19,14 @@ import scala.scalajs.js
 import scala.scalajs.js.annotation.{JSExport, JSExportTopLevel}
 import maf.modular.AddrDependency
 
+import scala.collection.mutable
+
 class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
 
     val anlalys = this
     var webvis: DebuggerWebVisualisation = _
+
+    var queueSteps: mutable.Queue[Boolean] = new mutable.Queue()
 
     //var dependenciesMap: Map[Component, Set[Component]] = Map().withDefaultValue(Set())
     //var writeEffectsMap: Map[Component, Set[Address]] = Map().withDefaultValue(Set())
@@ -31,14 +35,11 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
 
     def back(): Unit =
         println("back now")
-        stateKeeper.goBackState()
-        DebuggerVisualisation.reloadvis()
-        webvis.beforeStep()
-        webvis.afterStep()
-        webvis.refresh()
+        DebuggerVisualisation.back(queueSteps)
 
     def continue(step: Boolean): Unit =
 
+        queueSteps.enqueue(step)
         webvis.beforeStep()
         anlalys.loop(step)
         stateKeeper.writeEffectsMap =
@@ -181,14 +182,19 @@ object DebuggerVisualisation:
         removevis()
         input.reset()
 
-    def reloadvis(): Unit =
-        DebuggerVisualisation.removevis()
-        vizz = DebuggerVisualisation1(anl, 840, 600)
-        document.querySelector(".visualisation").appendChild(vizz.node)
-        vizz.analysis.webvis = vizz
-        vizz.enableStoreVisualisation(storeVisualisation)
-        vizz.enableWorklistVisualisation(workListVisualisation)
-        vizz.analysis.lineVis = linenumberVis
+    def back(queue: mutable.Queue[Boolean]): Unit =
+        stepButton.classList.add("btn")
+        stepButton.classList.add("hidden")
+        stepUntilBreakButton.classList.add("btn")
+        stepUntilBreakButton.classList.add("hidden")
+        removevis()
+        input.reset()
+        input = EditText(loadFile)
+        vizz.analysis.startAnalysis()
+        queue.dequeue()
+        while queue.length > 1 do
+            var elm = queue.dequeue()
+            vizz.analysis.loop(elm)
 
     @JSExport
     def setup(): Unit =
