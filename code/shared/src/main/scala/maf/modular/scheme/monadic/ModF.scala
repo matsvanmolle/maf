@@ -54,6 +54,7 @@ abstract class ModF[M[_]: Monad](exp: SchemeExp) extends SchemeModFLocalSensitiv
         case Call(_, _, ctx) => ctx
 
     private def prepareNext(result: Effects): Effects =
+        println(result.W)
         val cmps =
             // spawn all components in C
             result.C.filterNot(c => result.seen.contains(c)) ++

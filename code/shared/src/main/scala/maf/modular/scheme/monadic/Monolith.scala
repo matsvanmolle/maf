@@ -256,7 +256,7 @@ trait Monolith extends SchemeSemantics:
 
     private def write(adr: Address, v: Value): SuspendM[Unit] =
         modify(e =>
-            if e.sto.lookup(adr).getOrElse(lattice.bottom) == v then e
+            if lattice.subsumes(e.sto.lookup(adr).getOrElse(lattice.bottom), v) then e
             else e.copy(W = e.W + AddrDependency(adr), sto = e.sto.extend(adr, v))
         )
 
