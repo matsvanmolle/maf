@@ -72,7 +72,7 @@ abstract class ModF[M[_]: Monad](exp: SchemeExp) extends SchemeModFLocalSensitiv
     class MySuspendable extends Suspend:
         type State = (Env, Ctx, Effects)
     // a suspendable monad instance
-    final  val suspendable: MySuspendable = new MySuspendable
+    final val suspendable: MySuspendable = new MySuspendable
 
     given MonadFix_[suspendable.Suspend, Effects] with
         type M[X] = suspendable.Suspend[X]
@@ -122,6 +122,9 @@ class SimpleModFAnalysis(prg: SchemeExp)
     def loop(step: Boolean): Unit =
         if stateKeeper.currentLoopState != null then
             stateKeeper.currentLoopState match
+                case f: suspendable.FlatMap[_, _] =>
+                    stateKeeper.newLoopState(f.continue) // FlatMap is not suspended, so continue
+                    loop(step)
                 case suspendable.Done(eff) =>
                     effectsState = eff
                     _finished = eff.wl.isEmpty
@@ -144,14 +147,13 @@ class SimpleModFAnalysis(prg: SchemeExp)
 class StateKeeper[A <: SimpleModFAnalysis](val analysis: A):
     import scala.collection.mutable.Stack
     import maf.modular.scheme.monadic.*
-    
+
     var currentLoopState: analysis.suspendable.Suspend[analysis.Effects] = _
     val loopStateStack: Stack[analysis.suspendable.Suspend[analysis.Effects]] = new mutable.Stack[analysis.suspendable.Suspend[analysis.Effects]]()
 
-
     var writeEffectsMap: Map[analysis.Component, Set[Address]] = Map().withDefaultValue(Set())
     var wStack: Stack[Map[analysis.Component, Set[Address]]] = new mutable.Stack[Map[analysis.Component, Set[Address]]]()
-    
+
     var breakLineNumber: Int = 0
     var currentState: analysis.Effects = analysis.effectsState
     var lastState: analysis.Effects = analysis.effectsState
@@ -164,15 +166,13 @@ class StateKeeper[A <: SimpleModFAnalysis](val analysis: A):
         currentState = newState
 
     def newLoopState(loopState: analysis.suspendable.Suspend[analysis.Effects]): Unit =
-        if currentLoopState != null then 
+        if currentLoopState != null then
             loopStateStack.push(currentLoopState)
             wStack.push(writeEffectsMap)
         currentLoopState = loopState
-    
 
     def goBackState(): Unit =
         currentState = lastState
         lastState = stateStack.pop()
         currentLoopState = loopStateStack.pop()
         writeEffectsMap = wStack.pop()
-        

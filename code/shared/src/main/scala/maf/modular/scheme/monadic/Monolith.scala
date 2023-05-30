@@ -14,6 +14,7 @@ import maf.language.scheme.SchemeExp
 import maf.language.scheme.SchemeBegin
 import scala.io.StdIn
 import maf.util.Default
+import scala.annotation.tailrec
 
 trait Suspend:
     type State
@@ -28,16 +29,33 @@ trait Suspend:
         def state: State
         def v: A
 
+    case class FlatMap[A, B](v: A, next: A => Suspend[B]) extends Suspend[B]:
+        override def continue: Suspend[B] =
+            def loop(s: Suspend[B]): Suspend[B] = s match
+                case Done(v)           => Done(v)
+                case s: SuspendInfo[_] => s
+                case FlatMap(v, next) =>
+                    loop(next(v))
+
+            loop(next(v))
+
     case class Suspended[A](state: State, v: A) extends Suspend[A], SuspendInfo[A]
     case class SuspendedFlatMap[A, B](state: State, v: A, next: A => Suspend[B]) extends Suspend[B], SuspendInfo[A]:
-        override def continue: Suspend[B] = next(v)
+        override def continue: Suspend[B] =
+            // continue until the next suspend
+            next(v) match
+                case Done(v)           => Done(v)
+                case s: SuspendInfo[_] => s
+                case s =>
+                    s.continue
 
     given suspendMonad: Monad[Suspend] with
         def map[X, Y](m: Suspend[X])(f: X => Y): Suspend[Y] =
             flatMap(m)(f andThen unit)
 
         def flatMap[X, Y](m: Suspend[X])(f: X => Suspend[Y]): Suspend[Y] = m match
-            case Done(v)                   => f(v)
+            case Done(v)                   => FlatMap(v, f)
+            case FlatMap(v, f2)            => FlatMap(v, (v) => f2(v).flatMap(f))
             case s: Suspended[X]           => SuspendedFlatMap[X, Y](s.state, s.v, f)
             case s: SuspendedFlatMap[_, _] => SuspendedFlatMap(s.state, s.v, (v) => s.next(v).flatMap(f))
             case _                         => sys.error("unreachable")
