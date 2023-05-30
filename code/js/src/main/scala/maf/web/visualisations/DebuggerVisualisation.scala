@@ -35,7 +35,7 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
 
     def back(): Unit =
         println("back now")
-        DebuggerVisualisation.back(queueSteps)
+        DebuggerVisualisation.back(queueSteps.toList)
 
     def continue(step: Boolean): Unit =
 
@@ -58,7 +58,6 @@ class DebuggerAnalysis(program: SchemeExp) extends SimpleModFAnalysis(program):
             if lineVis != null then lineVis.innerText = ""
             DebuggerVisualisation.stepButton.innerText = "Reset"
             DebuggerVisualisation.stepUntilBreakButton.classList.add("hidden")
-            DebuggerVisualisation.backButton.classList.add("hidden")
             DebuggerVisualisation.stepClick = () => DebuggerVisualisation.reload()
 
     def startAnalysis() =
@@ -115,7 +114,6 @@ object DebuggerVisualisation:
     var input: EditText = _
     var stepButton: html.Element = _
     var stepUntilBreakButton: html.Element = _
-    var backButton: html.Element = _
     var storeVisualisation: HTMLElement = _
     var workListVisualisation: HTMLElement = _
     var linenumberVis: HTMLElement = _
@@ -123,15 +121,17 @@ object DebuggerVisualisation:
 
     def onClick(): Unit = println("click")
     var stepClick = () => println("click")
-    var backClick = () => println("back")
     var stepUntilBreakClick = () => println("click")
     var removevis = () => ()
+    
+    var programtxt: String = _
 
     var vizz: DebuggerVisualisation1 = _
     var anl: DebuggerAnalysis = _
 
     protected def loadFile(program: String): Unit =
 
+        programtxt = program
         stepButton.innerText = "Next"
         stepButton.classList.remove("hidden")
         stepButton.classList.remove("disabled")
@@ -139,9 +139,6 @@ object DebuggerVisualisation:
         stepUntilBreakButton.innerText = "Step Until Next Breakpoint"
         stepUntilBreakButton.classList.remove("hidden")
         stepUntilBreakButton.classList.remove("disabled")
-
-        backButton.classList.remove("hidden")
-        backButton.classList.remove("disabled")
 
         // create an analysis
         //val analysis = createAnalysis(program)
@@ -169,7 +166,7 @@ object DebuggerVisualisation:
         vizz.enableWorklistVisualisation(workListVisualisation)
         vizz.analysis.lineVis = linenumberVis
 
-        backClick = () => vizz.analysis.back()
+
         stepClick = () => vizz.analysis.continue(true)
         stepUntilBreakClick = () => vizz.analysis.continue(false)
         vizz.analysis.startAnalysis()
@@ -182,19 +179,14 @@ object DebuggerVisualisation:
         removevis()
         input.reset()
 
-    def back(queue: mutable.Queue[Boolean]): Unit =
-        stepButton.classList.add("btn")
-        stepButton.classList.add("hidden")
-        stepUntilBreakButton.classList.add("btn")
-        stepUntilBreakButton.classList.add("hidden")
-        removevis()
-        input.reset()
-        input = EditText(loadFile)
+    def back(queue: List[Boolean]): Unit =
+        var q: List[Boolean] = queue
+        reload()
+        loadFile(programtxt)
         vizz.analysis.startAnalysis()
-        queue.dequeue()
-        while queue.length > 1 do
-            var elm = queue.dequeue()
-            vizz.analysis.loop(elm)
+        while q.length > 1 do
+            vizz.analysis.continue(q.head)
+            q = q.tail
 
     @JSExport
     def setup(): Unit =
@@ -203,10 +195,7 @@ object DebuggerVisualisation:
         input.setFile(ExamplePrograms3.factorial)
         document.body.appendChild(input.render())
 
-        backButton = Button("Back")(backClick())
-        backButton.classList.add("btn")
-        backButton.classList.add("hidden")
-        input.appendChild(backButton)
+
 
         stepButton = Button("Click 'Start Analysis' to start.")(stepClick())
         stepButton.classList.add("btn")

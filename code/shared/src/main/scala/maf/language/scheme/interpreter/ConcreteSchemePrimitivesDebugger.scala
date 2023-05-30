@@ -53,7 +53,7 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
                 Value.Integer(stateKeeper.currentState.wl.queue.length)
 
     object PrevWorklistLenght extends SimplePrim:
-        val name = "w:prev-length"
+        val name = "wl:prev-length"
 
         def call(args: List[Value], position: Position): Value =
             val state = stateKeeper.lastState
@@ -208,8 +208,9 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
 
         def call(args: List[Value], position: Position): Value =
           val vlu: Option[ConcreteSchemePrimitivesDebugger.this.stateKeeper.analysis.Value] = args(0) match
-            case Storeval(v) => Some(v)
-            case _ => null
+            case Storeval(v) =>
+              Some(stateKeeper.analysis.lattice.getPointerAddresses(v).foldLeft(stateKeeper.analysis.lattice.bottom)((acc, addr) => stateKeeper.analysis.lattice.join(stateKeeper.currentState.sto.lookup(addr).getOrElse(stateKeeper.analysis.lattice.bottom) , acc)))
+            case _ => null//naar none
           vlu match
             case Some(vlu) =>
               val res = stateKeeper.analysis.lattice.op(SchemeOp.IsCons)(List(vlu)) // voor de check uit, resultaat is abtracte boolean
@@ -221,8 +222,9 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
 
         def call(args: List[Value], position: Position): Value =
           val vlu: Option[ConcreteSchemePrimitivesDebugger.this.stateKeeper.analysis.Value] = args(0) match
-            case Storeval(v) => Some(v)
-            case _ => null
+            case Storeval(v) =>
+              Some(stateKeeper.analysis.lattice.getPointerAddresses(v).foldLeft(stateKeeper.analysis.lattice.bottom)((acc, addr) => stateKeeper.analysis.lattice.join(stateKeeper.currentState.sto.lookup(addr).getOrElse(stateKeeper.analysis.lattice.bottom), acc)))
+            case _ => null //naar none
           vlu match
             case Some(vlu) =>
               val res = stateKeeper.analysis.lattice.op(SchemeOp.Car)(List(vlu)) // voor de check uit, resultaat is abtracte boolean
@@ -233,4 +235,12 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
         val name = "lattice:cdr"
 
         def call(args: List[Value], position: Position): Value =
-            Value.Bool(true)
+          val vlu: Option[ConcreteSchemePrimitivesDebugger.this.stateKeeper.analysis.Value] = args(0) match
+            case Storeval(v) =>
+              Some(stateKeeper.analysis.lattice.getPointerAddresses(v).foldLeft(stateKeeper.analysis.lattice.bottom)((acc, addr) => stateKeeper.analysis.lattice.join(stateKeeper.currentState.sto.lookup(addr).getOrElse(stateKeeper.analysis.lattice.bottom), acc)))
+            case _ => null //naar none
+          vlu match
+            case Some(vlu) =>
+              val res = stateKeeper.analysis.lattice.op(SchemeOp.Cdr)(List(vlu)) // voor de check uit, resultaat is abtracte boolean
+              Value.Bool(stateKeeper.analysis.lattice.isTrue(res.getOrElse(stateKeeper.analysis.lattice.nil))) // kijk of de abstracte boolean true is
+            case _ => Value.Bool(false)

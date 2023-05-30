@@ -475,7 +475,7 @@ trait SmallStepModConcSemantics extends SchemeSetup with ContextSensitiveCompone
             lattice.pointer(addr)
 
         protected def allocateCons(pairExp: SchemeExp)(car: Value, cdr: Value): Value =
-            allocateVal(pairExp)(lattice.cons(car, cdr))
+            allocateVal(pairExp)(lattice.cons(car, car))
 
         protected def allocateStr(strExp: SchemeExp)(str: String): Value =
             allocateVal(strExp)(lattice.string(str))

@@ -787,7 +787,7 @@ class ModularSchemeLattice[A <: Address, S: StringLattice, B: BoolLattice, I: In
                                     Element(
                                       Vec(
                                         size,
-                                        content + (index2 -> schemeLattice.join(content(index2), newval))
+                                        content + (index2 -> schemeLattice.join(content.getOrElse(index2, schemeLattice.bottom), newval))
                                       )
                                     )
                                 case None =>
