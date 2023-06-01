@@ -48,7 +48,7 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
                 println("--------wl len no state---------")
                 Value.Integer(0)
             else
-                println("-------wl len----------")
+                println(s"-------wl len----------${stateKeeper.currentState.wl.queue.length}")
                 println(stateKeeper.currentState.wl.queue.length)
                 Value.Integer(stateKeeper.currentState.wl.queue.length)
 
@@ -227,8 +227,11 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
             case _ => null //naar none
           vlu match
             case Some(vlu) =>
-              val res = stateKeeper.analysis.lattice.op(SchemeOp.Car)(List(vlu)) // voor de check uit, resultaat is abtracte boolean
-              Value.Bool(stateKeeper.analysis.lattice.isTrue(res.getOrElse(stateKeeper.analysis.lattice.nil))) // kijk of de abstracte boolean true is
+              val res: Option[ConcreteSchemePrimitivesDebugger.this.stateKeeper.analysis.Value] = Some(stateKeeper.analysis.lattice.op(SchemeOp.Car)(List(vlu)).getOrElse(stateKeeper.analysis.lattice.bottom)) // voor de check uit, resultaat is abtracte boolean
+              res match {
+                case Some(value) => Storeval(value)
+                case None => Value.Bool(false)
+              }
             case _ => Value.Bool(false)
 
     object latticeCdr extends SimplePrim:
@@ -241,6 +244,9 @@ trait ConcreteSchemePrimitivesDebugger[A <: SimpleModFAnalysis] extends Concrete
             case _ => null //naar none
           vlu match
             case Some(vlu) =>
-              val res = stateKeeper.analysis.lattice.op(SchemeOp.Cdr)(List(vlu)) // voor de check uit, resultaat is abtracte boolean
-              Value.Bool(stateKeeper.analysis.lattice.isTrue(res.getOrElse(stateKeeper.analysis.lattice.nil))) // kijk of de abstracte boolean true is
+              val res: Option[ConcreteSchemePrimitivesDebugger.this.stateKeeper.analysis.Value] = Some(stateKeeper.analysis.lattice.op(SchemeOp.Cdr)(List(vlu)).getOrElse(stateKeeper.analysis.lattice.bottom)) // voor de check uit, resultaat is abtracte boolean
+              res match {
+                case Some(value) => Storeval(value)
+                case None => Value.Bool(false)
+              }
             case _ => Value.Bool(false)

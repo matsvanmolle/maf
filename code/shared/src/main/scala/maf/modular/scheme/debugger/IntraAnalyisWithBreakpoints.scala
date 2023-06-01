@@ -33,6 +33,7 @@ trait IntraAnalyisWithBreakpoints extends Monolith:
     import maf.language.scheme
     def loop(step: Boolean): Unit
     override def eval(exp: SchemeExp): A[Val] =
+        println(s"eval: $exp")
         exp match
             case DebuggerBreak(pred, idn) =>
                 for

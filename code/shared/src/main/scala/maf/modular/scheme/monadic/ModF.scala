@@ -136,6 +136,7 @@ class SimpleModFAnalysis(prg: SchemeExp)
                     //println(s"Current state: ${s.state._3}")
                     effectsState = s.state._3
                     this.isStep = step
+                    println(s"state: ${s.state}")
                     //stateKeeper.currentLoopState = s.continue
                     stateKeeper.newLoopState(s.continue)
 
